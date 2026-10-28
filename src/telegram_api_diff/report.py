@@ -6,7 +6,6 @@ from typing import Any
 
 from .diff import RecordChange, SchemaDiff, schema_counts
 
-
 MAX_ITEMS_PER_SECTION = 100
 
 
@@ -61,11 +60,11 @@ def _append_change_section(
         record = item.after if side == "after" else item.before
         if record is None:
             record = item.after or item.before or {}
-        lines.append(f"- **{_collection_title(item.collection)}:** `{item.name}`")
-        lines.append(f"  - `{_signature(record, item.collection)}`")
+        lines.append(f"- **{_collection_title(item.collection)}: {item.name}**")
+        lines.append(f"  - {_signature(record, item.collection)}")
         if show_before_after and item.before is not None and item.after is not None:
-            lines.append(f"  - Before: `{_signature(item.before, item.collection)}`")
-            lines.append(f"  - After: `{_signature(item.after, item.collection)}`")
+            lines.append(f"  - Before: {_signature(item.before, item.collection)}")
+            lines.append(f"  - After: {_signature(item.after, item.collection)}")
     if len(records) > len(shown):
         lines.append(f"- … {len(records) - len(shown)} more entries omitted from this report section.")
 
@@ -80,9 +79,9 @@ def render_baseline_report(
         "",
         "This is the first snapshot. No historical comparison is available yet.",
         "",
-        f"- Checked at (UTC): `{checked_at}`",
+        f"- Checked at (UTC): {checked_at}",
         f"- Source: [{source_url}]({source_url})",
-        f"- API layer: `{schema.get('layer', 'unknown')}`",
+        f"- API layer: {schema.get('layer', 'unknown')}",
         "",
         "## Inventory",
         "",
@@ -97,12 +96,11 @@ def render_baseline_report(
             "",
         ]
     )
-    return "\\n".join(lines)
+    return chr(10).join(lines)
 
 
 def render_report(
     diff: SchemaDiff,
-    schema: dict[str, Any],
     checked_at: str,
     source_url: str,
 ) -> str:
@@ -110,9 +108,9 @@ def render_report(
     lines = [
         "# Telegram MTProto schema changes",
         "",
-        f"- Checked at (UTC): `{checked_at}`",
+        f"- Checked at (UTC): {checked_at}",
         f"- Source: [{source_url}]({source_url})",
-        f"- API layer: `{diff.previous_layer}` → `{diff.current_layer}`",
+        f"- API layer: {diff.previous_layer} → {diff.current_layer}",
         "",
         "## Summary",
         "",
@@ -124,7 +122,7 @@ def render_report(
 
     if not diff.has_changes:
         lines.extend(["", "No schema changes were detected."])
-        return "\\n".join(lines) + "\\n"
+        return chr(10).join(lines) + chr(10)
 
     _append_change_section(lines, "Added declarations", diff.added, side="after")
     _append_change_section(lines, "Removed declarations", diff.removed, side="before")
@@ -139,7 +137,7 @@ def render_report(
     if diff.metadata_changes:
         lines.extend(["", "## Other metadata changes", ""])
         for key in diff.metadata_changes[:MAX_ITEMS_PER_SECTION]:
-            lines.append(f"- `{key}` changed.")
+            lines.append(f"- {key} changed.")
         if len(diff.metadata_changes) > MAX_ITEMS_PER_SECTION:
             lines.append(
                 f"- … {len(diff.metadata_changes) - MAX_ITEMS_PER_SECTION} more keys omitted."
@@ -154,4 +152,4 @@ def render_report(
             "",
         ]
     )
-    return "\\n".join(lines)
+    return chr(10).join(lines)

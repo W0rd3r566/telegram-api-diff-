@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from typing import Any
-from urllib.error import HTTPError, URLError
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 SCHEMA_URL = "https://core.telegram.org/schema/json"
@@ -24,7 +24,7 @@ def _record_sort_key(record: Any) -> str:
     else:
         identity = ""
     serialized = json.dumps(record, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
-    return f"{identity}\\0{serialized}"
+    return f"{identity}|{serialized}"
 
 
 def canonicalize_schema(payload: Any) -> dict[str, Any]:
@@ -55,7 +55,7 @@ def canonicalize_schema(payload: Any) -> dict[str, Any]:
 def schema_to_json(payload: Any) -> str:
     """Serialize a validated schema in a deterministic, readable format."""
     normalized = canonicalize_schema(payload)
-    return json.dumps(normalized, ensure_ascii=False, indent=2, sort_keys=True) + "\\n"
+    return json.dumps(normalized, ensure_ascii=False, indent=2, sort_keys=True) + chr(10)
 
 
 def fetch_schema(url: str = SCHEMA_URL, timeout: float = 30.0) -> dict[str, Any]:
@@ -73,7 +73,7 @@ def fetch_schema(url: str = SCHEMA_URL, timeout: float = 30.0) -> dict[str, Any]
             raw = response.read(MAX_SCHEMA_BYTES + 1)
     except HTTPError as exc:
         raise SchemaError(f"Schema endpoint returned HTTP {exc.code}: {exc.reason}") from exc
-    except (URLError, TimeoutError, OSError) as exc:
+    except OSError as exc:
         raise SchemaError(f"Could not fetch schema from {url}: {exc}") from exc
 
     if len(raw) > MAX_SCHEMA_BYTES:
@@ -87,7 +87,7 @@ def fetch_schema(url: str = SCHEMA_URL, timeout: float = 30.0) -> dict[str, Any]
     try:
         payload = json.loads(text)
     except json.JSONDecodeError as exc:
-        preview = text[:160].replace("\\n", " ")
+        preview = text[:160].replace(chr(10), " ")
         raise SchemaError(
             f"Schema endpoint did not return valid JSON (response begins: {preview!r})."
         ) from exc

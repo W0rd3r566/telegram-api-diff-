@@ -89,13 +89,12 @@ def test_report_includes_layer_and_modified_signature() -> None:
 
     report = render_report(
         compare_schemas(before, after),
-        after,
         "2026-10-29T04:17:00Z",
         "https://core.telegram.org/schema/json",
     )
 
     assert "# Telegram MTProto schema changes" in report
-    assert "`10` → `11`" in report
+    assert "10 → 11" in report
     assert "Modified declarations" in report
     assert "id:long" in report
 
