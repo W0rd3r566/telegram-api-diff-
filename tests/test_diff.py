@@ -4,7 +4,7 @@ import pytest
 
 from telegram_api_diff.diff import compare_schemas
 from telegram_api_diff.report import render_report
-from telegram_api_diff.schema import SchemaError, canonicalize_schema, parse_api_layer, schema_to_json
+from telegram_api_diff.schema import (\n    SchemaError,\n    canonicalize_schema,\n    parse_api_layer,\n    schema_to_json,\n)
 
 
 def test_canonicalization_ignores_declaration_order() -> None:
