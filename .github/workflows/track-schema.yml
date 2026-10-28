@@ -1,0 +1,53 @@
+name: Track Telegram MTProto schema
+
+on:
+  schedule:
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/track-schema.yml"
+      - "src/**"
+      - "tests/**"
+      - "pyproject.toml"
+      - "README.md"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: telegram-schema-tracker
+  cancel-in-progress: false
+
+jobs:
+  update-schema:
+    name: Fetch and compare official schema
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install project
+        run: python -m pip install --upgrade pip && python -m pip install .
+
+      - name: Fetch and compare schema
+        run: python -m telegram_api_diff update
+
+      - name: Commit generated snapshots and reports
+        run: |
+          git add snapshots reports
+          if git diff --cached --quiet; then
+            echo "No snapshot or report changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: update Telegram MTProto schema snapshot"
+          git push
