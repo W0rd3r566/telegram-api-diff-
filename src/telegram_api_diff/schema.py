@@ -44,7 +44,9 @@ def canonicalize_schema(payload: Any) -> dict[str, Any]:
 
     declaration_count = sum(len(payload[key]) for key in collection_keys)
     if declaration_count == 0:
-        raise SchemaError("The schema contains no declarations; refusing to accept an empty schema.")
+        raise SchemaError(
+            "The schema contains no declarations; refusing to accept an empty schema."
+        )
 
     normalized = dict(payload)
     for key in collection_keys:

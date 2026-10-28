@@ -66,7 +66,9 @@ def _append_change_section(
             lines.append(f"  - Before: {_signature(item.before, item.collection)}")
             lines.append(f"  - After: {_signature(item.after, item.collection)}")
     if len(records) > len(shown):
-        lines.append(f"- … {len(records) - len(shown)} more entries omitted from this report section.")
+        lines.append(
+            f"- … {len(records) - len(shown)} more entries omitted from this report section."
+        )
 
 
 def render_baseline_report(
