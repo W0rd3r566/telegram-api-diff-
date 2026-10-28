@@ -1,8 +1,8 @@
 # Telegram MTProto schema changes
 
-- Checked at (UTC): 2026-10-28T23:00:44Z
+- Checked at (UTC): 2026-10-28T23:03:07Z
 - Source: [https://core.telegram.org/schema/json](https://core.telegram.org/schema/json)
-- API layer: unknown → 225
+- API layer: 225 → 225
 
 ## Summary
 
@@ -11,6 +11,4 @@
 - Modified declarations: **0**
 - Other metadata changes: **0**
 
----
-
-Generated automatically by [Telegram API Diff](https://github.com/W0rd3r566/telegram-api-diff-).
+No schema changes were detected.
