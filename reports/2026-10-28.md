@@ -1,15 +1,16 @@
-# Telegram MTProto schema baseline
+# Telegram MTProto schema changes
 
-This is the first snapshot. No historical comparison is available yet.
-
-- Checked at (UTC): 2026-10-28T22:57:47Z
+- Checked at (UTC): 2026-10-28T23:00:44Z
 - Source: [https://core.telegram.org/schema/json](https://core.telegram.org/schema/json)
-- API layer: unknown
+- API layer: unknown → 225
 
-## Inventory
+## Summary
 
-- Constructors: **1573**
-- Methods: **783**
-- Types: **0**
+- Added declarations: **0**
+- Removed declarations: **0**
+- Modified declarations: **0**
+- Other metadata changes: **0**
 
-The next successful run will compare this baseline with Telegram's published schema.
+---
+
+Generated automatically by [Telegram API Diff](https://github.com/W0rd3r566/telegram-api-diff-).
