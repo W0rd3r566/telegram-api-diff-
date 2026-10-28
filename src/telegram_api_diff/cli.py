@@ -59,16 +59,15 @@ def command_update(args: argparse.Namespace) -> int:
     if latest_path.exists():
         previous = _load_schema(latest_path)
         diff = compare_schemas(previous, current)
-        if not diff.has_changes:
-            print("No schema changes detected. The latest snapshot was left untouched.")
-            _print_summary(current)
-            return 0
         report = render_report(diff, checked_at, args.schema_url)
-        print(
-            "Schema updated: "
-            f"+{len(diff.added)} added, -{len(diff.removed)} removed, "
-            f"~{len(diff.changed)} modified."
-        )
+        if not diff.has_changes:
+            print("No schema changes detected; recording today's check.")
+        else:
+            print(
+                "Schema updated: "
+                f"+{len(diff.added)} added, -{len(diff.removed)} removed, "
+                f"~{len(diff.changed)} modified."
+            )
     else:
         report = render_baseline_report(current, checked_at, args.schema_url)
         print("Created the first baseline; future runs can detect changes.")

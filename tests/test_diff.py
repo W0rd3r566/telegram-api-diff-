@@ -125,3 +125,40 @@ def test_extra_top_level_metadata_is_tracked() -> None:
 def test_parse_api_layer_from_official_page() -> None:
     text = chr(10).join(["# Actual TL-scheme", "* Layer 225", "* 1 - Base layer"])
     assert parse_api_layer(text) == 225
+
+
+
+def test_update_records_daily_snapshot_and_report_when_unchanged(
+    tmp_path, monkeypatch
+) -> None:
+    import json
+    from argparse import Namespace
+
+    from telegram_api_diff import cli
+
+    current = {
+        "layer": 225,
+        "constructors": [{"predicate": "sample", "id": "1", "params": [], "type": "Sample"}],
+        "methods": [],
+    }
+    latest = tmp_path / "snapshots" / "latest.json"
+    latest.parent.mkdir(parents=True)
+    latest.write_text(json.dumps(current), encoding="utf-8")
+
+    monkeypatch.setattr(cli, "fetch_schema", lambda url, timeout: current)
+    monkeypatch.setattr(
+        cli, "_timestamp", lambda: ("2026-10-29T00:00:00Z", "2026-10-29")
+    )
+    args = Namespace(
+        root=tmp_path,
+        schema_url="https://core.telegram.org/schema/json",
+        timeout=30.0,
+    )
+
+    assert cli.command_update(args) == 0
+    assert (tmp_path / "snapshots" / "2026-10-29.json").is_file()
+    assert (tmp_path / "reports" / "2026-10-29.md").is_file()
+    assert (tmp_path / "reports" / "latest.md").is_file()
+    assert "No schema changes detected" in (
+        tmp_path / "reports" / "latest.md"
+    ).read_text(encoding="utf-8")
