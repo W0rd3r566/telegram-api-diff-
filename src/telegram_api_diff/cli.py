@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -15,7 +15,7 @@ from .schema import SCHEMA_URL, SchemaError, canonicalize_schema, fetch_schema, 
 
 
 def _timestamp() -> tuple[str, str]:
-    now = datetime.now(timezone.utc).replace(microsecond=0)
+    now = datetime.now(UTC).replace(microsecond=0)
     return now.isoformat().replace("+00:00", "Z"), now.strftime("%Y-%m-%d")
 
 
