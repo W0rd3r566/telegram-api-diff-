@@ -38,7 +38,7 @@ The first `update` creates a baseline. Since no earlier snapshot exists yet, it 
 
 | Command | Behaviour |
 | --- | --- |
-| `telegram-api-diff update` | Fetch the schema, compare it to the latest snapshot, and save a report only when needed. |
+| `telegram-api-diff update` | Fetch the schema, compare it to the latest snapshot, and save a dated snapshot and report for each successful check. |
 | `telegram-api-diff check` | Check for changes without writing; exits with status 1 when changes are detected and 2 when no baseline exists. |
 
 Options available for both commands:
