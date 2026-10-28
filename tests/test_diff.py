@@ -159,6 +159,6 @@ def test_update_records_daily_snapshot_and_report_when_unchanged(
     assert (tmp_path / "snapshots" / "2026-10-29.json").is_file()
     assert (tmp_path / "reports" / "2026-10-29.md").is_file()
     assert (tmp_path / "reports" / "latest.md").is_file()
-    assert "No schema changes detected" in (
+    assert "No schema changes were detected." in (
         tmp_path / "reports" / "latest.md"
     ).read_text(encoding="utf-8")
