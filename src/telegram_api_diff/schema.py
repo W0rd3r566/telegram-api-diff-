@@ -68,16 +68,16 @@ def canonicalize_schema(payload: Any) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise SchemaError("The schema response must be a JSON object.")
 
+    required_collections = ("constructors", "methods")
+    missing = [key for key in required_collections if not isinstance(payload.get(key), list)]
+    if missing:
+        raise SchemaError(
+            "Schema is missing required declaration arrays: " + ", ".join(missing)
+        )
+
     collection_keys = [
         key for key in SCHEMA_COLLECTIONS if isinstance(payload.get(key), list)
     ]
-    if not collection_keys:
-        raise SchemaError(
-            "No declaration arrays were found. Expected at least one of: "
-            + ", ".join(SCHEMA_COLLECTIONS)
-            + ". The endpoint may have changed or returned an error document."
-        )
-
     declaration_count = sum(len(payload[key]) for key in collection_keys)
     if declaration_count == 0:
         raise SchemaError(
@@ -86,7 +86,15 @@ def canonicalize_schema(payload: Any) -> dict[str, Any]:
 
     normalized = dict(payload)
     for key in collection_keys:
-        normalized[key] = sorted(payload[key], key=_record_sort_key)
+        records = payload[key]
+        for index, record in enumerate(records):
+            if not isinstance(record, dict):
+                raise SchemaError(f"{key}[{index}] is not a JSON object.")
+            identity_key = "method" if key == "methods" else "predicate"
+            identity = record.get(identity_key) or record.get("name") or record.get("id")
+            if identity is None or str(identity).strip() == "":
+                raise SchemaError(f"{key}[{index}] has no usable declaration name.")
+        normalized[key] = sorted(records, key=_record_sort_key)
     return normalized
 
 

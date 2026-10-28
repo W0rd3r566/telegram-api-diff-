@@ -162,3 +162,13 @@ def test_update_records_daily_snapshot_and_report_when_unchanged(
     assert "No schema changes were detected." in (
         tmp_path / "reports" / "latest.md"
     ).read_text(encoding="utf-8")
+
+
+
+def test_canonicalize_rejects_missing_required_collections_and_malformed_records() -> None:
+    with pytest.raises(SchemaError, match="required declaration arrays"):
+        canonicalize_schema({"constructors": [{"predicate": "x"}]})
+    with pytest.raises(SchemaError, match=r"constructors\[0\] is not a JSON object"):
+        canonicalize_schema({"constructors": ["not-a-record"], "methods": []})
+    with pytest.raises(SchemaError, match="no usable declaration name"):
+        canonicalize_schema({"constructors": [{}], "methods": []})
