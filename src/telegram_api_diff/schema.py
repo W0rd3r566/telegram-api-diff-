@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 SCHEMA_URL = "https://core.telegram.org/schema/json"
+SCHEMA_MARKDOWN_URL = "https://core.telegram.org/scheme.md"
 SCHEMA_COLLECTIONS = ("constructors", "methods", "types")
 MAX_SCHEMA_BYTES = 64 * 1024 * 1024
 USER_AGENT = "telegram-api-diff/0.1 (+https://github.com/W0rd3r566/telegram-api-diff-)"
@@ -15,6 +17,40 @@ USER_AGENT = "telegram-api-diff/0.1 (+https://github.com/W0rd3r566/telegram-api-
 
 class SchemaError(RuntimeError):
     """Raised when the official schema cannot be fetched or validated."""
+
+
+def parse_api_layer(text: str) -> int:
+    """Extract the current layer number from Telegram's official schema timeline."""
+    match = re.search(r"(?im)^\s*(?:[-*+]\s*)?Layer\s+(\d+)\b", text)
+    if match is None:
+        match = re.search(r"\bLayer\s+(\d+)\b", text, re.IGNORECASE)
+    if match is None:
+        raise SchemaError("The official schema timeline did not contain a recognizable API layer.")
+    return int(match.group(1))
+
+
+def fetch_api_layer(timeout: float = 30.0) -> int:
+    """Fetch the current API layer from Telegram's official schema timeline."""
+    request = Request(
+        SCHEMA_MARKDOWN_URL,
+        headers={
+            "Accept": "text/markdown, text/plain, */*",
+            "User-Agent": USER_AGENT,
+        },
+    )
+    try:
+        with urlopen(request, timeout=timeout) as response:
+            raw = response.read(512 * 1024)
+    except HTTPError as exc:
+        raise SchemaError(f"Layer timeline returned HTTP {exc.code}: {exc.reason}") from exc
+    except OSError as exc:
+        raise SchemaError(f"Could not fetch layer timeline: {exc}") from exc
+
+    try:
+        text = raw.decode("utf-8-sig")
+    except UnicodeDecodeError as exc:
+        raise SchemaError("Layer timeline response was not valid UTF-8.") from exc
+    return parse_api_layer(text)
 
 
 def _record_sort_key(record: Any) -> str:
@@ -95,9 +131,13 @@ def fetch_schema(url: str = SCHEMA_URL, timeout: float = 30.0) -> dict[str, Any]
         ) from exc
 
     try:
-        return canonicalize_schema(payload)
+        normalized = canonicalize_schema(payload)
     except SchemaError as exc:
         raise SchemaError(f"Unexpected schema response from {url}: {exc}") from exc
+
+    if url == SCHEMA_URL:
+        normalized["layer"] = fetch_api_layer(timeout=timeout)
+    return normalized
 
 
 def load_schema_text(text: str) -> dict[str, Any]:

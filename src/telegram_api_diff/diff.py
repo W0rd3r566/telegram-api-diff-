@@ -122,5 +122,5 @@ def schema_counts(schema: Any) -> dict[str, int]:
     return {
         collection: len(normalized.get(collection, []))
         for collection in SCHEMA_COLLECTIONS
-        if isinstance(normalized.get(collection, []), list)
+        if collection in normalized and isinstance(normalized[collection], list)
     }

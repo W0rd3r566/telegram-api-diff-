@@ -4,7 +4,7 @@ import pytest
 
 from telegram_api_diff.diff import compare_schemas
 from telegram_api_diff.report import render_report
-from telegram_api_diff.schema import SchemaError, canonicalize_schema, schema_to_json
+from telegram_api_diff.schema import SchemaError, canonicalize_schema, parse_api_layer, schema_to_json
 
 
 def test_canonicalization_ignores_declaration_order() -> None:
@@ -114,3 +114,9 @@ def test_extra_top_level_metadata_is_tracked() -> None:
 
     assert diff.has_changes
     assert diff.metadata_changes == ["version"]
+
+
+
+def test_parse_api_layer_from_official_markdown() -> None:
+    text = chr(10).join(["# Actual TL-scheme", "* Layer 225", "* 1 - Base layer"])
+    assert parse_api_layer(text) == 225
