@@ -7,7 +7,7 @@ Telegram API Diff downloads the machine-readable schema published by Telegram, c
 ## Features
 
 - **Official source:** [Telegram's machine-readable TL schema](https://core.telegram.org/schema/json), with [schema documentation](https://core.telegram.org/schema).
-- **Structured change detection:** added, removed, and modified declarations, plus the current API layer from Telegram's official schema timeline.
+- **Structured change detection:** added, removed, and modified declarations, plus the current API layer from Telegram's official schema page.
 - **Snapshot history:** dated JSON snapshots in `snapshots/`, with `snapshots/latest.json` as the current baseline.
 - **Markdown reports:** dated reports in `reports/` and a convenient `reports/latest.md`.
 - **Automation:** scheduled and manually triggerable GitHub Actions workflow.

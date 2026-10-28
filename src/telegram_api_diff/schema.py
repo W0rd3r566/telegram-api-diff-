@@ -9,7 +9,7 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 SCHEMA_URL = "https://core.telegram.org/schema/json"
-SCHEMA_MARKDOWN_URL = "https://core.telegram.org/scheme.md"
+SCHEMA_LAYER_URL = "https://core.telegram.org/scheme"
 SCHEMA_COLLECTIONS = ("constructors", "methods", "types")
 MAX_SCHEMA_BYTES = 64 * 1024 * 1024
 USER_AGENT = "telegram-api-diff/0.1 (+https://github.com/W0rd3r566/telegram-api-diff-)"
@@ -32,9 +32,9 @@ def parse_api_layer(text: str) -> int:
 def fetch_api_layer(timeout: float = 30.0) -> int:
     """Fetch the current API layer from Telegram's official schema timeline."""
     request = Request(
-        SCHEMA_MARKDOWN_URL,
+        SCHEMA_LAYER_URL,
         headers={
-            "Accept": "text/markdown, text/plain, */*",
+            "Accept": "text/html, text/plain, */*",
             "User-Agent": USER_AGENT,
         },
     )

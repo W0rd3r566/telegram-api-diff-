@@ -117,6 +117,6 @@ def test_extra_top_level_metadata_is_tracked() -> None:
 
 
 
-def test_parse_api_layer_from_official_markdown() -> None:
+def test_parse_api_layer_from_official_page() -> None:
     text = chr(10).join(["# Actual TL-scheme", "* Layer 225", "* 1 - Base layer"])
     assert parse_api_layer(text) == 225
