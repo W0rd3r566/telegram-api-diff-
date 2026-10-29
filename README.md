@@ -91,13 +91,16 @@ Never commit the token or paste it into issues or chat. Notifications are option
 
 ## Web dashboard
 
-The static dashboard lives in `site/` and is deployed through GitHub Pages. A repository owner must enable it once: open **Settings → Pages → Build and deployment → Source** and select **GitHub Actions**. The workflow token cannot change this repository setting automatically. Then run **Actions → Deploy dashboard to GitHub Pages → Run workflow**. The dashboard reads public snapshots from this repository and requires no server or API key.
+The static dashboard lives in `site/` and is deployed through GitHub Pages. It loads public snapshots and reports from this repository and reads the latest tracker run from GitHub's public Actions API. Use **Snapshot history** to open an archived snapshot, or **Compare snapshots** to inspect declaration additions, removals, and modifications between two dates. The weekly monitor counts changes recorded in reports from the last seven UTC calendar days; days without a saved report are not counted. No server, API key, or client-side token is required.
+
+A repository owner must enable Pages once: open **Settings → Pages → Build and deployment → Source** and select **GitHub Actions**. Then run **Actions → Deploy dashboard to GitHub Pages → Run workflow**.
 
 ## Automatic releases
 
 Whenever the tracker detects actual schema changes, it creates a GitHub Release tagged with the UTC date, current API layer, and workflow run ID. The generated `reports/latest.md` becomes the release notes. Checks with no changes, including a manual Telegram notification test, do not create a release.
 
 ## How change detection works
+
 The JSON is canonicalized before comparison: declaration collections are sorted by stable names and object keys are serialized consistently. Each constructor, method, or type is identified by its schema name. The report lists new, removed, and modified declarations and highlights changes to the API layer or other top-level metadata.
 
 A missing or malformed response is treated as an error rather than a valid empty schema, preventing accidental replacement of the baseline with an error page.
