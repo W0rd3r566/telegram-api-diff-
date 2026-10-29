@@ -95,3 +95,17 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "chore: update Telegram MTProto schema snapshot"
           git push
+      - name: Publish GitHub Release for schema changes
+        if: steps.track.outputs.has_changes == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CURRENT_LAYER: ${{ steps.track.outputs.current_layer }}
+        run: |
+          tag="schema-$(date -u +%Y%m%d)-layer-${CURRENT_LAYER}-${GITHUB_RUN_ID}"
+          cp reports/latest.md /tmp/schema-release-notes.md
+          printf '\n---\n\nDashboard: https://w0rd3r566.github.io/telegram-api-diff-/\nLatest report: https://github.com/W0rd3r566/telegram-api-diff-/blob/main/reports/latest.md\n' >> /tmp/schema-release-notes.md
+          gh release create "$tag" \
+            --title "Telegram MTProto schema update: layer ${CURRENT_LAYER}" \
+            --notes-file /tmp/schema-release-notes.md \
+            --target "$(git rev-parse HEAD)"
+
