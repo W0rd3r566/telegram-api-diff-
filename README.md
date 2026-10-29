@@ -13,10 +13,14 @@ If this project is useful to you, please **⭐ star this repository**. It helps 
 - **Structured change detection:** added, removed, and modified declarations, plus the current API layer from Telegram's official schema page.
 - **Snapshot history:** dated JSON snapshots in `snapshots/`, with `snapshots/latest.json` as the current baseline.
 - **Detailed Markdown reports:** dated reports in `reports/` and a convenient `reports/latest.md`, including field and parameter-level changes.
-- **Automation:** scheduled and manually triggerable GitHub Actions workflow. Optional Telegram notifications are sent only when changes are detected.
+- **Automation:** scheduled and manually triggerable GitHub Actions workflow, with status visible in the dashboard.
+- **Automatic releases:** GitHub creates a Release with the generated Markdown report whenever the schema actually changes.
+- **Snapshot diff viewer:** compare any two saved snapshots and inspect added, removed, and modified declarations.
+- **Weekly monitor:** dashboard shows the latest tracker run and changes recorded in recent reports.
+- **Telegram notifications:** optional messages for real schema changes, plus a manual notification test.
 - **No runtime dependencies:** the application uses Python's standard library.
 - **Tests and linting:** pytest and Ruff run in CI.
-- **Web dashboard:** a GitHub Pages dashboard with the latest layer, searchable declarations, and snapshot history.
+- **Web dashboard:** GitHub Pages provides searchable declarations, snapshot history, workflow status, and an interactive diff.
 
 ## Quick start
 
@@ -89,8 +93,11 @@ Never commit the token or paste it into issues or chat. Notifications are option
 
 The static dashboard lives in `site/` and is deployed through GitHub Pages. A repository owner must enable it once: open **Settings → Pages → Build and deployment → Source** and select **GitHub Actions**. The workflow token cannot change this repository setting automatically. Then run **Actions → Deploy dashboard to GitHub Pages → Run workflow**. The dashboard reads public snapshots from this repository and requires no server or API key.
 
-## How change detection works
+## Automatic releases
 
+Whenever the tracker detects actual schema changes, it creates a GitHub Release tagged with the UTC date, current API layer, and workflow run ID. The generated `reports/latest.md` becomes the release notes. Checks with no changes, including a manual Telegram notification test, do not create a release.
+
+## How change detection works
 The JSON is canonicalized before comparison: declaration collections are sorted by stable names and object keys are serialized consistently. Each constructor, method, or type is identified by its schema name. The report lists new, removed, and modified declarations and highlights changes to the API layer or other top-level metadata.
 
 A missing or malformed response is treated as an error rather than a valid empty schema, preventing accidental replacement of the baseline with an error page.
