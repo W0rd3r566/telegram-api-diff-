@@ -38,7 +38,32 @@ jobs:
         run: python -m pip install --upgrade pip && python -m pip install .
 
       - name: Fetch and compare schema
+        id: track
         run: python -m telegram_api_diff update
+
+      - name: Notify Telegram about schema changes
+        if: steps.track.outputs.has_changes == 'true'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          ADDED_COUNT: ${{ steps.track.outputs.added_count }}
+          REMOVED_COUNT: ${{ steps.track.outputs.removed_count }}
+          MODIFIED_COUNT: ${{ steps.track.outputs.modified_count }}
+          METADATA_COUNT: ${{ steps.track.outputs.metadata_count }}
+          PREVIOUS_LAYER: ${{ steps.track.outputs.previous_layer }}
+          CURRENT_LAYER: ${{ steps.track.outputs.current_layer }}
+          REPORT_URL: ${{ steps.track.outputs.report_url }}
+        run: |
+          if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+            echo "Telegram notification skipped: configure TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID secrets."
+            exit 0
+          fi
+          message=$(printf 'Telegram MTProto schema changed\\nLayer: %s → %s\\nAdded: %s\\nRemoved: %s\\nModified: %s\\nMetadata changes: %s\\nReport: %s' \\
+            "$PREVIOUS_LAYER" "$CURRENT_LAYER" "$ADDED_COUNT" "$REMOVED_COUNT" "$MODIFIED_COUNT" "$METADATA_COUNT" "$REPORT_URL")
+          curl --fail-with-body --silent --show-error --request POST \\
+            "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \\
+            --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \\
+            --data-urlencode "text=${message}"
 
       - name: Commit generated snapshots and reports
         run: |

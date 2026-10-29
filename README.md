@@ -9,10 +9,11 @@ Telegram API Diff downloads the machine-readable schema published by Telegram, c
 - **Official source:** [Telegram's machine-readable TL schema](https://core.telegram.org/schema/json), with [schema documentation](https://core.telegram.org/schema).
 - **Structured change detection:** added, removed, and modified declarations, plus the current API layer from Telegram's official schema page.
 - **Snapshot history:** dated JSON snapshots in `snapshots/`, with `snapshots/latest.json` as the current baseline.
-- **Markdown reports:** dated reports in `reports/` and a convenient `reports/latest.md`.
-- **Automation:** scheduled and manually triggerable GitHub Actions workflow.
+- **Detailed Markdown reports:** dated reports in `reports/` and a convenient `reports/latest.md`, including field and parameter-level changes.
+- **Automation:** scheduled and manually triggerable GitHub Actions workflow. Optional Telegram notifications are sent only when changes are detected.
 - **No runtime dependencies:** the application uses Python's standard library.
 - **Tests and linting:** pytest and Ruff run in CI.
+- **Web dashboard:** a GitHub Pages dashboard with the latest layer, searchable declarations, and snapshot history.
 
 ## Quick start
 
@@ -67,7 +68,21 @@ snapshots/              # Dated JSON snapshots and latest baseline
 reports/                # Dated reports and latest report
 ```
 
-The `snapshots/` and `reports/` data files are created when the tracker first runs. The workflow is scheduled daily at 04:17 UTC and can also be started from **Actions → Track Telegram MTProto schema → Run workflow**.
+The `snapshots/` and `reports/` data files are created when the tracker first runs. The tracker runs daily at 04:17 UTC and can also be started from **Actions → Track Telegram MTProto schema → Run workflow**.
+
+## Optional Telegram notifications
+
+1. Create a bot with Telegram's official [@BotFather](https://t.me/BotFather), then open the bot and press **Start**.
+2. Add repository Actions secrets under **Settings → Secrets and variables → Actions**:
+   - `TELEGRAM_BOT_TOKEN`: the bot token from BotFather.
+   - `TELEGRAM_CHAT_ID`: the chat ID that should receive notifications.
+3. Run the tracker workflow manually to verify the setup when a schema change is detected. The notification step is skipped when no changes are found.
+
+Never commit the token or paste it into issues or chat. Notifications are optional; schema tracking works without them.
+
+## Web dashboard
+
+The static dashboard lives in `site/` and is deployed through GitHub Pages. The Pages workflow attempts to enable the GitHub Actions deployment source automatically. If GitHub asks for a one-time setting, open **Settings → Pages** and choose **GitHub Actions** as the build and deployment source. The dashboard reads public snapshots from this repository and requires no server or API key.
 
 ## How change detection works
 

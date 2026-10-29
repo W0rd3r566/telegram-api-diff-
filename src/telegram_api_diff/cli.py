@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
@@ -41,6 +42,19 @@ def _load_schema(path: Path) -> dict[str, Any]:
     return canonicalize_schema(schema)
 
 
+def _write_github_outputs(values: dict[str, str | int | bool]) -> None:
+    """Append single-line outputs for GitHub Actions when running inside a workflow."""
+    output_path = os.environ.get("GITHUB_OUTPUT")
+    if not output_path:
+        return
+    with Path(output_path).open("a", encoding="utf-8") as output:
+        for key, value in values.items():
+            normalized = str(value).lower() if isinstance(value, bool) else str(value)
+            if "\n" in normalized or "\r" in normalized:
+                raise ValueError(f"GitHub Actions output {key!r} must be a single line.")
+            output.write(f"{key}={normalized}\n")
+
+
 def _print_summary(schema: dict[str, Any]) -> None:
     counts = schema_counts(schema)
     inventory = ", ".join(f"{name}={count}" for name, count in counts.items())
@@ -56,9 +70,12 @@ def command_update(args: argparse.Namespace) -> int:
     dated_report = root / "reports" / f"{date}.md"
     latest_report = root / "reports" / "latest.md"
 
+    diff = None
+    previous_layer: Any = "unknown"
     if latest_path.exists():
         previous = _load_schema(latest_path)
         diff = compare_schemas(previous, current)
+        previous_layer = diff.previous_layer
         report = render_report(diff, checked_at, args.schema_url)
         if not diff.has_changes:
             print("No schema changes detected; recording today's check.")
@@ -77,6 +94,18 @@ def command_update(args: argparse.Namespace) -> int:
     _atomic_write(latest_path, serialized)
     _atomic_write(dated_report, report)
     _atomic_write(latest_report, report)
+    _write_github_outputs(
+        {
+            "has_changes": bool(diff and diff.has_changes),
+            "added_count": len(diff.added) if diff else 0,
+            "removed_count": len(diff.removed) if diff else 0,
+            "modified_count": len(diff.changed) if diff else 0,
+            "metadata_count": len(diff.metadata_changes) if diff else 0,
+            "previous_layer": previous_layer,
+            "current_layer": current.get("layer", "unknown"),
+            "report_url": "https://github.com/W0rd3r566/telegram-api-diff-/blob/main/reports/latest.md",
+        }
+    )
     _print_summary(current)
     print(f"Snapshot: {dated_snapshot}")
     print(f"Report:   {dated_report}")

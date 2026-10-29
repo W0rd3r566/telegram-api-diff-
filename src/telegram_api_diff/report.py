@@ -40,6 +40,58 @@ def _signature(record: dict[str, Any], collection: str) -> str:
     return label.replace(chr(96), "'")
 
 
+def _short_value(value: Any, limit: int = 180) -> str:
+    import json
+
+    rendered = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    if len(rendered) > limit:
+        return rendered[: limit - 1] + "…"
+    return rendered
+
+
+def _parameter_map(record: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    params = record.get("params", [])
+    if not isinstance(params, list):
+        return {}
+    result: dict[str, dict[str, Any]] = {}
+    for param in params:
+        if isinstance(param, dict) and param.get("name") is not None:
+            result[str(param["name"])] = param
+    return result
+
+
+def _append_record_differences(
+    lines: list[str], before: dict[str, Any], after: dict[str, Any]
+) -> None:
+    """Describe changed declaration fields, including individual parameter changes."""
+    keys = (before.keys() | after.keys()) - {"params"}
+    for key in sorted(keys):
+        old_value = before.get(key, "<missing>")
+        new_value = after.get(key, "<missing>")
+        if old_value != new_value:
+            lines.append(
+                f"  - Field {chr(96)}{key}{chr(96)}: "
+                f"{chr(96)}{_short_value(old_value)}{chr(96)} → "
+                f"{chr(96)}{_short_value(new_value)}{chr(96)}"
+            )
+
+    old_params = _parameter_map(before)
+    new_params = _parameter_map(after)
+    for name in sorted(new_params.keys() - old_params.keys()):
+        param = new_params[name]
+        lines.append(f"  - Parameter added: {chr(96)}{name}: {param.get('type', '?')}{chr(96)}")
+    for name in sorted(old_params.keys() - new_params.keys()):
+        param = old_params[name]
+        lines.append(f"  - Parameter removed: {chr(96)}{name}: {param.get('type', '?')}{chr(96)}")
+    for name in sorted(old_params.keys() & new_params.keys()):
+        if old_params[name] != new_params[name]:
+            lines.append(
+                f"  - Parameter changed: {chr(96)}{name}{chr(96)} "
+                f"{chr(96)}{_short_value(old_params[name])}{chr(96)} → "
+                f"{chr(96)}{_short_value(new_params[name])}{chr(96)}"
+            )
+
+
 def _collection_title(collection: str) -> str:
     return collection.replace("_", " ").title()
 
@@ -65,6 +117,7 @@ def _append_change_section(
         if show_before_after and item.before is not None and item.after is not None:
             lines.append(f"  - Before: {_signature(item.before, item.collection)}")
             lines.append(f"  - After: {_signature(item.after, item.collection)}")
+            _append_record_differences(lines, item.before, item.after)
     if len(records) > len(shown):
         lines.append(
             f"- … {len(records) - len(shown)} more entries omitted from this report section."

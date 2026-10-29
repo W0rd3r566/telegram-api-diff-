@@ -194,3 +194,75 @@ def test_canonicalize_rejects_non_scalar_declaration_names() -> None:
                 "methods": [],
             }
         )
+
+
+
+def test_report_explains_parameter_level_changes() -> None:
+    before = {
+        "layer": 10,
+        "constructors": [
+            {
+                "predicate": "sample",
+                "id": "aa",
+                "params": [{"name": "old_id", "type": "int"}],
+                "type": "Sample",
+            }
+        ],
+        "methods": [],
+    }
+    after = {
+        "layer": 11,
+        "constructors": [
+            {
+                "predicate": "sample",
+                "id": "aa",
+                "params": [
+                    {"name": "new_id", "type": "long"},
+                    {"name": "flags", "type": "#"},
+                ],
+                "type": "Sample",
+            }
+        ],
+        "methods": [],
+    }
+    report = render_report(
+        compare_schemas(before, after),
+        "2026-10-29T04:17:00Z",
+        "https://core.telegram.org/schema/json",
+    )
+    assert "Parameter added: " + chr(96) + "flags: #" + chr(96) in report
+    assert "Parameter added: " + chr(96) + "new_id: long" + chr(96) in report
+    assert "Parameter removed: " + chr(96) + "old_id: int" + chr(96) in report
+
+
+def test_update_writes_github_actions_outputs(tmp_path, monkeypatch) -> None:
+    import json
+    from argparse import Namespace
+
+    from telegram_api_diff import cli
+
+    current = {
+        "layer": 225,
+        "constructors": [{"predicate": "sample", "id": "1", "params": [], "type": "Sample"}],
+        "methods": [],
+    }
+    latest = tmp_path / "snapshots" / "latest.json"
+    latest.parent.mkdir(parents=True)
+    latest.write_text(json.dumps(current), encoding="utf-8")
+    output = tmp_path / "github-output.txt"
+    monkeypatch.setenv("GITHUB_OUTPUT", str(output))
+    monkeypatch.setattr(cli, "fetch_schema", lambda url, timeout: current)
+    monkeypatch.setattr(cli, "_timestamp", lambda: ("2026-10-29T00:00:00Z", "2026-10-29"))
+
+    assert cli.command_update(
+        Namespace(
+            root=tmp_path,
+            schema_url="https://core.telegram.org/schema/json",
+            timeout=30.0,
+        )
+    ) == 0
+
+    values = dict(line.split("=", 1) for line in output.read_text(encoding="utf-8").splitlines())
+    assert values["has_changes"] == "false"
+    assert values["added_count"] == "0"
+    assert values["current_layer"] == "225"
