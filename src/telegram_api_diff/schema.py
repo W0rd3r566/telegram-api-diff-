@@ -87,13 +87,20 @@ def canonicalize_schema(payload: Any) -> dict[str, Any]:
     normalized = dict(payload)
     for key in collection_keys:
         records = payload[key]
+        seen_names: set[str] = set()
         for index, record in enumerate(records):
             if not isinstance(record, dict):
                 raise SchemaError(f"{key}[{index}] is not a JSON object.")
             identity_key = "method" if key == "methods" else "predicate"
             identity = record.get(identity_key) or record.get("name") or record.get("id")
-            if identity is None or str(identity).strip() == "":
+            if not isinstance(identity, (str, int)) or isinstance(identity, bool):
                 raise SchemaError(f"{key}[{index}] has no usable declaration name.")
+            name = str(identity).strip()
+            if not name:
+                raise SchemaError(f"{key}[{index}] has no usable declaration name.")
+            if name in seen_names:
+                raise SchemaError(f"{key} contains duplicate declaration name: {name!r}.")
+            seen_names.add(name)
         normalized[key] = sorted(records, key=_record_sort_key)
     return normalized
 

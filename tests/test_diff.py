@@ -172,3 +172,25 @@ def test_canonicalize_rejects_missing_required_collections_and_malformed_records
         canonicalize_schema({"constructors": ["not-a-record"], "methods": []})
     with pytest.raises(SchemaError, match="no usable declaration name"):
         canonicalize_schema({"constructors": [{}], "methods": []})
+
+
+
+def test_canonicalize_rejects_duplicate_declaration_names() -> None:
+    duplicate = {"predicate": "same", "id": "01", "params": [], "type": "Item"}
+    with pytest.raises(SchemaError, match="duplicate declaration name"):
+        canonicalize_schema(
+            {
+                "constructors": [duplicate, dict(duplicate)],
+                "methods": [],
+            }
+        )
+
+
+def test_canonicalize_rejects_non_scalar_declaration_names() -> None:
+    with pytest.raises(SchemaError, match="no usable declaration name"):
+        canonicalize_schema(
+            {
+                "constructors": [{"predicate": {"unexpected": "object"}}],
+                "methods": [],
+            }
+        )
