@@ -82,7 +82,7 @@ Never commit the token or paste it into issues or chat. Notifications are option
 
 ## Web dashboard
 
-The static dashboard lives in `site/` and is deployed through GitHub Pages. The Pages workflow attempts to enable the GitHub Actions deployment source automatically. If GitHub asks for a one-time setting, open **Settings → Pages** and choose **GitHub Actions** as the build and deployment source. The dashboard reads public snapshots from this repository and requires no server or API key.
+The static dashboard lives in `site/` and is deployed through GitHub Pages. A repository owner must enable it once: open **Settings → Pages → Build and deployment → Source** and select **GitHub Actions**. The workflow token cannot change this repository setting automatically. Then run **Actions → Deploy dashboard to GitHub Pages → Run workflow**. The dashboard reads public snapshots from this repository and requires no server or API key.
 
 ## How change detection works
 

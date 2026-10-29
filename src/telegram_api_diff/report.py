@@ -42,8 +42,6 @@ def _signature(record: dict[str, Any], collection: str) -> str:
 
 
 def _short_value(value: Any, limit: int = 180) -> str:
-    import json
-
     rendered = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     if len(rendered) > limit:
         return rendered[: limit - 1] + "…"

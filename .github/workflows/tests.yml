@@ -32,5 +32,10 @@ jobs:
       - name: Test
         run: pytest
 
-      - name: Compile
+      - name: Compile Python
         run: python -m compileall -q src
+
+      - name: Check dashboard JavaScript syntax
+        run: |
+          python -c "from pathlib import Path; import re; html = Path('site/index.html').read_text(encoding='utf-8'); scripts = re.findall(r'<script>(.*?)</script>', html, re.S); assert scripts, 'No inline JavaScript found'; Path('/tmp/telegram-api-diff-dashboard.js').write_text('\\n'.join(scripts), encoding='utf-8')"
+          node --check /tmp/telegram-api-diff-dashboard.js
