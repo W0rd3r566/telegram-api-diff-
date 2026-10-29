@@ -5,12 +5,8 @@ on:
     branches: [main]
     paths:
       - "site/**"
-      - "snapshots/**"
-      - "reports/**"
       - ".github/workflows/pages.yml"
       - "README.md"
-  schedule:
-    - cron: "45 4 * * *"
   workflow_dispatch:
 
 permissions:
