@@ -94,7 +94,11 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "chore: update Telegram MTProto schema snapshot"
-          git push
+          if ! git push; then
+            echo "Branch advanced during the schema check; rebasing the generated commit."
+            git pull --rebase origin main
+            git push
+          fi
       - name: Publish GitHub Release for schema changes
         if: steps.track.outputs.has_changes == 'true'
         env:
