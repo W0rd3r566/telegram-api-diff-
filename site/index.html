@@ -4,6 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#050505">
 <meta name="description" content="Browse Telegram MTProto declarations and compare official schema snapshots."><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <title>Telegram API Diff</title>
+<script>document.documentElement.classList.add("js");</script>
 <style>
 :root{color-scheme:dark;--bg:#050505;--panel:#0d0d0d;--panel2:#121212;--line:#292929;--text:#e7e7e7;--muted:#929292;--accent:#e5e5e5;--green:#83ad89;--red:#c98282;--r:6px}
 *{box-sizing:border-box}
@@ -98,19 +99,60 @@ input::placeholder{color:#777}
 #more{margin-top:9px}
 @media(max-width:760px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.stat:nth-child(3){border-left:0;border-top:1px solid var(--line)}.stat:nth-child(4){border-top:1px solid var(--line)}.layout{grid-template-columns:1fr}.monitor-grid{grid-template-columns:1fr;gap:16px}.diff-controls{grid-template-columns:1fr 1fr}.diff-controls label:nth-child(3){grid-column:1/2}.diff-controls button{grid-column:2/3}.hero{padding-top:23px}.wrap{padding:14px 12px 28px}}
 @media(max-width:400px){.tools{flex-wrap:wrap}.tools select{max-width:none;width:100%}.diff-controls{grid-template-columns:1fr}.diff-controls label:nth-child(3),.diff-controls button{grid-column:auto}.stat{padding:11px}.value{font-size:21px}.panel{padding:12px}.links{width:100%}}
-</style></head>
+</style>
+<style>
+/* Quiet motion, inspired by React Bits' animated-content and micro-interaction patterns. */
+.js .reveal{
+  opacity:0;
+  transform:translateY(9px);
+  filter:blur(2px);
+  transition:opacity .48s cubic-bezier(.2,.7,.2,1),transform .48s cubic-bezier(.2,.7,.2,1),filter .48s ease;
+  transition-delay:var(--reveal-delay,0ms)
+}
+.js .reveal.is-visible{opacity:1;transform:none;filter:none}
+.result{transition:background .14s ease,border-color .14s ease,transform .14s ease}
+.result:hover{transform:translateX(2px)}
+button:active{transform:translateY(1px)}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+  .js .reveal{opacity:1;transform:none;filter:none}
+  .result:hover,button:active{transform:none}
+}
+</style>
+
+</head>
 <body><main class="wrap">
 <header class="top"><div class="brand"><div class="logo" aria-hidden="true">T/</div><div><h1>Telegram API Diff</h1><p>MTProto schema history</p></div></div><nav class="links"><a href="https://github.com/W0rd3r566/telegram-api-diff-" target="_blank" rel="noreferrer">GitHub ↗</a><a href="https://core.telegram.org/schema/json" target="_blank" rel="noreferrer">Official schema ↗</a></nav></header>
-<section class="hero"><div class="status"><span class="dot"></span><span id="status">Connecting to public snapshots…</span></div><h2>Telegram MTProto schema</h2><p>Browse constructors, methods and types. Inspect saved snapshots and compare changes across API layers.</p></section>
-<section class="panel monitor"><div class="head"><h3>Automation</h3><span class="pill run-badge" id="workflow-badge">Checking Actions…</span></div><div class="monitor-grid"><div><div class="label">Latest tracker run</div><div class="run-title" id="run-title">Loading GitHub Actions…</div><p class="run-meta" id="run-meta">Reading recent workflow status and check time.</p><a id="run-link" href="https://github.com/W0rd3r566/telegram-api-diff-/actions/workflows/track-schema.yml" target="_blank" rel="noreferrer">Open workflow history ↗</a></div><div><div class="label">Recorded changes, last 7 days</div><div class="weekbar" id="weekly"><div class="diff-empty">Loading reports…</div></div><p class="run-meta" id="weekly-meta">Counts come from saved reports.</p></div></div></section>
-<section class="stats"><article class="stat"><div class="label">API layer</div><div class="value" id="layer">—</div><div class="hint" id="checked">Latest snapshot</div></article><article class="stat"><div class="label">Constructors</div><div class="value" id="constructors">—</div><div class="hint">Declarations</div></article><article class="stat"><div class="label">Methods</div><div class="value" id="methods">—</div><div class="hint">Callable API methods</div></article><article class="stat"><div class="label">Saved snapshots</div><div class="value" id="snapshots">—</div><div class="hint">Dated history</div></article></section>
-<div class="layout"><section class="panel"><div class="head"><h3>Schema explorer</h3><span class="pill" id="count">0 results</span></div><div class="tools"><input id="search" type="search" placeholder="Search name, ID, parameter…" aria-label="Search declarations"><select id="kind" aria-label="Filter declarations"><option value="all">All declarations</option><option value="methods">Methods</option><option value="constructors">Constructors</option><option value="types">Types</option></select></div><div id="results"><div class="empty">Loading declarations…</div></div><button id="more" hidden>Show more</button><p class="hint">Select a declaration to inspect its complete record.</p></section>
+<section class="hero reveal"><div class="status"><span class="dot"></span><span id="status">Connecting to public snapshots…</span></div><h2>Telegram MTProto schema</h2><p>Browse constructors, methods and types. Inspect saved snapshots and compare changes across API layers.</p></section>
+<section class="panel monitor reveal"><div class="head"><h3>Automation</h3><span class="pill run-badge" id="workflow-badge">Checking Actions…</span></div><div class="monitor-grid"><div><div class="label">Latest tracker run</div><div class="run-title" id="run-title">Loading GitHub Actions…</div><p class="run-meta" id="run-meta">Reading recent workflow status and check time.</p><a id="run-link" href="https://github.com/W0rd3r566/telegram-api-diff-/actions/workflows/track-schema.yml" target="_blank" rel="noreferrer">Open workflow history ↗</a></div><div><div class="label">Recorded changes, last 7 days</div><div class="weekbar" id="weekly"><div class="diff-empty">Loading reports…</div></div><p class="run-meta" id="weekly-meta">Counts come from saved reports.</p></div></div></section>
+<section class="stats reveal"><article class="stat"><div class="label">API layer</div><div class="value" id="layer">—</div><div class="hint" id="checked">Latest snapshot</div></article><article class="stat"><div class="label">Constructors</div><div class="value" id="constructors">—</div><div class="hint">Declarations</div></article><article class="stat"><div class="label">Methods</div><div class="value" id="methods">—</div><div class="hint">Callable API methods</div></article><article class="stat"><div class="label">Saved snapshots</div><div class="value" id="snapshots">—</div><div class="hint">Dated history</div></article></section>
+<div class="layout reveal"><section class="panel"><div class="head"><h3>Schema explorer</h3><span class="pill" id="count">0 results</span></div><div class="tools"><input id="search" type="search" placeholder="Search name, ID, parameter…" aria-label="Search declarations"><select id="kind" aria-label="Filter declarations"><option value="all">All declarations</option><option value="methods">Methods</option><option value="constructors">Constructors</option><option value="types">Types</option></select></div><div id="results"><div class="empty">Loading declarations…</div></div><button id="more" hidden>Show more</button><p class="hint">Select a declaration to inspect its complete record.</p></section>
 <aside style="display:grid;gap:14px;min-width:0"><section class="panel"><div class="head"><h3>Declaration details</h3><span class="pill" id="detail-kind">Nothing selected</span></div><div id="detail" class="muted">Choose a declaration from the explorer.</div></section><section class="panel"><div class="head"><h3>Snapshot history</h3><span class="pill">UTC dates</span></div><div id="history" class="history"><div class="empty">Loading history…</div></div></section><section class="panel"><div class="head"><h3>Latest report</h3><a href="https://github.com/W0rd3r566/telegram-api-diff-/blob/main/reports/latest.md" target="_blank" rel="noreferrer">Open ↗</a></div><div id="report" class="report">Loading report…</div></section></aside></div>
-<section class="panel" style="margin-top:14px"><div class="head"><h3>Compare snapshots</h3><span class="pill">Declaration diff</span></div><p class="hint">Compare any two saved JSON snapshots. Added, removed and modified declarations are grouped below; open a row to inspect the before/after records.</p><div class="diff-controls"><label>Older snapshot<select id="diff-old" aria-label="Older snapshot"></select></label><label>Newer snapshot<select id="diff-new" aria-label="Newer snapshot"></select></label><label>Show<select id="diff-filter" aria-label="Filter diff"><option value="all">All changes</option><option value="added">Added</option><option value="removed">Removed</option><option value="changed">Modified</option></select></label><button id="compare" type="button" disabled>Compare</button></div><div id="diff-summary" class="diff-summary"></div><div id="diff-results" class="diff-items"><div class="diff-empty">Choose two snapshots and press Compare.</div></div></section>
-<footer class="foot"><span>Independent community project, not affiliated with Telegram.</span><span>Source: <a href="https://core.telegram.org/schema/json">official schema</a></span></footer></main>
+<section class="panel reveal" style="margin-top:14px"><div class="head"><h3>Compare snapshots</h3><span class="pill">Declaration diff</span></div><p class="hint">Compare any two saved JSON snapshots. Added, removed and modified declarations are grouped below; open a row to inspect the before/after records.</p><div class="diff-controls"><label>Older snapshot<select id="diff-old" aria-label="Older snapshot"></select></label><label>Newer snapshot<select id="diff-new" aria-label="Newer snapshot"></select></label><label>Show<select id="diff-filter" aria-label="Filter diff"><option value="all">All changes</option><option value="added">Added</option><option value="removed">Removed</option><option value="changed">Modified</option></select></label><button id="compare" type="button" disabled>Compare</button></div><div id="diff-summary" class="diff-summary"></div><div id="diff-results" class="diff-items"><div class="diff-empty">Choose two snapshots and press Compare.</div></div></section>
+<footer class="foot reveal"><span>Independent community project, not affiliated with Telegram.</span><span>Source: <a href="https://core.telegram.org/schema/json">official schema</a></span></footer></main>
 <script>
 (() => {
 "use strict";
+const initReveal = () => {
+  const nodes = Array.from(document.querySelectorAll(".reveal"));
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || !("IntersectionObserver" in window)) {
+    nodes.forEach(node => node.classList.add("is-visible"));
+    return;
+  }
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("is-visible");
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { rootMargin: "0px 0px -24px 0px", threshold: 0.06 });
+  nodes.forEach((node, index) => {
+    node.style.setProperty("--reveal-delay", Math.min(index * 55, 220) + "ms");
+    observer.observe(node);
+  });
+};
+initReveal();
 const OWNER="W0rd3r566",REPO="telegram-api-diff-",API="https://api.github.com/repos/"+OWNER+"/"+REPO,RAW="https://raw.githubusercontent.com/"+OWNER+"/"+REPO+"/main/";
 const $=id=>document.getElementById(id);let declarations=[],active="",shown=40,snapshotFiles=[];
 const num=n=>Number(n||0).toLocaleString();
