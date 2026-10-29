@@ -1,0 +1,31 @@
+name: Test Telegram notification
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  send-test:
+    name: Send test message
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send test notification to Telegram
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+            echo "::error::Telegram secrets are missing. Configure TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID in Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+
+          message=$(printf '✅ LayerTracker test notification\nSchema check completed successfully; no changes detected.\nCurrent layer: 225\nReport: https://github.com/W0rd3r566/telegram-api-diff-/blob/main/reports/latest.md')
+
+          response=$(curl --fail-with-body --silent --show-error --request POST \
+            "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
+            --data-urlencode "text=${message}")
+
+          printf '%s' "$response" | python -c 'import json, sys; result = json.load(sys.stdin); print("Telegram API accepted the message." if result.get("ok") else "Telegram API returned an error."); sys.exit(0 if result.get("ok") else 1)'
