@@ -4,6 +4,12 @@ on:
   schedule:
     - cron: "17 4 * * *"
   workflow_dispatch:
+    inputs:
+      test_notification:
+        description: "Send a test Telegram message even when no schema changes are detected"
+        required: false
+        type: boolean
+        default: false
   push:
     branches: [main]
     paths:
@@ -42,7 +48,7 @@ jobs:
         run: python -m telegram_api_diff update
 
       - name: Notify Telegram about schema changes
-        if: steps.track.outputs.has_changes == 'true'
+        if: steps.track.outputs.has_changes == 'true' || inputs.test_notification
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
@@ -53,17 +59,30 @@ jobs:
           PREVIOUS_LAYER: ${{ steps.track.outputs.previous_layer }}
           CURRENT_LAYER: ${{ steps.track.outputs.current_layer }}
           REPORT_URL: ${{ steps.track.outputs.report_url }}
+          HAS_CHANGES: ${{ steps.track.outputs.has_changes }}
+          TEST_NOTIFICATION: ${{ inputs.test_notification }}
         run: |
           if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
-            echo "Telegram notification skipped: configure TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID secrets."
+            echo "::error::Telegram secrets are missing. Configure TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID."
+            if [ "$TEST_NOTIFICATION" = "true" ]; then
+              exit 1
+            fi
             exit 0
           fi
-          message=$(printf 'Telegram MTProto schema changed\\nLayer: %s → %s\\nAdded: %s\\nRemoved: %s\\nModified: %s\\nMetadata changes: %s\\nReport: %s' \\
-            "$PREVIOUS_LAYER" "$CURRENT_LAYER" "$ADDED_COUNT" "$REMOVED_COUNT" "$MODIFIED_COUNT" "$METADATA_COUNT" "$REPORT_URL")
-          curl --fail-with-body --silent --show-error --request POST \\
-            "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \\
-            --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \\
-            --data-urlencode "text=${message}"
+
+          if [ "$TEST_NOTIFICATION" = "true" ] && [ "$HAS_CHANGES" != "true" ]; then
+            message=$(printf '✅ LayerTracker test notification\nSchema check completed successfully; no changes detected.\nCurrent layer: %s\nReport: %s' "$CURRENT_LAYER" "$REPORT_URL")
+          else
+            message=$(printf 'Telegram MTProto schema changed\nLayer: %s -> %s\nAdded: %s\nRemoved: %s\nModified: %s\nMetadata changes: %s\nReport: %s' \
+              "$PREVIOUS_LAYER" "$CURRENT_LAYER" "$ADDED_COUNT" "$REMOVED_COUNT" "$MODIFIED_COUNT" "$METADATA_COUNT" "$REPORT_URL")
+          fi
+
+          response=$(curl --fail-with-body --silent --show-error --request POST \
+            "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
+            --data-urlencode "text=${message}")
+
+          printf '%s' "$response" | python -c 'import json, sys; result = json.load(sys.stdin); print("Telegram API accepted the message." if result.get("ok") else "Telegram API returned an error."); sys.exit(0 if result.get("ok") else 1)'
 
       - name: Commit generated snapshots and reports
         run: |
