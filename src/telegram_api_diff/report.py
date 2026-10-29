@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 from .diff import RecordChange, SchemaDiff, schema_counts
