@@ -4,6 +4,9 @@ Track changes in Telegram's official MTProto TL schema over time.
 
 Telegram API Diff downloads the machine-readable schema published by Telegram, compares it with the previous snapshot, saves versioned JSON snapshots, and writes human-readable Markdown reports. GitHub Actions can run it daily without a server or API key.
 
+If this project is useful to you, please **⭐ star this repository**. It helps other developers discover it and motivates further development.  
+Если проект оказался полезным, пожалуйста, **⭐ поставьте звезду этому репозиторию**. Так другим разработчикам будет проще его найти, а у проекта будет больше мотивации для развития.
+
 ## Features
 
 - **Official source:** [Telegram's machine-readable TL schema](https://core.telegram.org/schema/json), with [schema documentation](https://core.telegram.org/schema).
@@ -56,6 +59,7 @@ You can also run the module directly with `python -m telegram_api_diff`.
 .github/
   workflows/
     track-schema.yml    # Daily/manual schema tracker
+    test-telegram.yml   # Manual Telegram notification test
     tests.yml           # Test and lint checks
 src/
   telegram_api_diff/
@@ -76,7 +80,8 @@ The `snapshots/` and `reports/` data files are created when the tracker first ru
 2. Add repository Actions secrets under **Settings → Secrets and variables → Actions**:
    - `TELEGRAM_BOT_TOKEN`: the bot token from BotFather.
    - `TELEGRAM_CHAT_ID`: the chat ID that should receive notifications.
-3. Run the tracker workflow manually to verify the setup when a schema change is detected. The notification step is skipped when no changes are found.
+3. To send a test message regardless of whether the schema changed, open **Actions → Test Telegram notification → Run workflow**. This separate workflow does not require selecting a checkbox.
+4. The regular tracker sends notifications when schema changes are detected. It can also send a test message when its `test_notification` input is enabled.
 
 Never commit the token or paste it into issues or chat. Notifications are optional; schema tracking works without them.
 
