@@ -1,6 +1,6 @@
 # Telegram MTProto schema changes
 
-- Checked at (UTC): 2026-10-31T10:24:51Z
+- Checked at (UTC): 2026-11-01T11:18:10Z
 - Source: [https://core.telegram.org/schema/json](https://core.telegram.org/schema/json)
 - API layer: 225 → 225
 
