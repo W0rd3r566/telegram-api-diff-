@@ -1,6 +1,6 @@
 //! Structured comparison of two canonical Telegram TL schema documents.
 
-use crate::schema::{canonicalize_schema, SchemaError, SCHEMA_COLLECTIONS};
+use crate::schema::{SCHEMA_COLLECTIONS, SchemaError, canonicalize_schema};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -113,7 +113,10 @@ pub fn compare_schemas(previous: &Value, current: &Value) -> Result<SchemaDiff, 
         let old_records = record_map(&old, collection);
         let new_records = record_map(&new, collection);
 
-        for name in new_records.keys().filter(|name| !old_records.contains_key(*name)) {
+        for name in new_records
+            .keys()
+            .filter(|name| !old_records.contains_key(*name))
+        {
             result.added.push(change(
                 collection,
                 name.clone(),
@@ -122,7 +125,10 @@ pub fn compare_schemas(previous: &Value, current: &Value) -> Result<SchemaDiff, 
             ));
         }
 
-        for name in old_records.keys().filter(|name| !new_records.contains_key(*name)) {
+        for name in old_records
+            .keys()
+            .filter(|name| !new_records.contains_key(*name))
+        {
             result.removed.push(change(
                 collection,
                 name.clone(),
@@ -131,16 +137,16 @@ pub fn compare_schemas(previous: &Value, current: &Value) -> Result<SchemaDiff, 
             ));
         }
 
-        for name in old_records.keys().filter(|name| new_records.contains_key(*name)) {
+        for name in old_records
+            .keys()
+            .filter(|name| new_records.contains_key(*name))
+        {
             let before = old_records.get(name).cloned();
             let after = new_records.get(name).cloned();
             if before != after {
-                result.changed.push(change(
-                    collection,
-                    name.clone(),
-                    before,
-                    after,
-                ));
+                result
+                    .changed
+                    .push(change(collection, name.clone(), before, after));
             }
         }
     }
