@@ -1,8 +1,8 @@
 # Telegram API Diff
 
-Track changes in Telegram's official MTProto TL schema over time.
+Track changes in Telegram's official MTProto TL schema and Telegram production web resources over time.
 
-Telegram API Diff downloads the machine-readable schema published by Telegram, compares it with the previous snapshot, saves versioned JSON snapshots, and writes human-readable Markdown reports. GitHub Actions can run it daily without a server or API key.
+Telegram API Diff downloads Telegram's machine-readable schema, compares it with previous snapshots, stores versioned JSON data, and writes Markdown reports. The existing Python tracker remains the stable runner while the Rust engine and JavaScript dashboard are being migrated on `rewrite/rust-js`.
 
 If this project is useful to you, please **⭐ star this repository**. It helps other developers discover it and motivates further development.  
 Если проект оказался полезным, пожалуйста, **⭐ поставьте звезду этому репозиторию**. Так другим разработчикам будет проще его найти, а у проекта будет больше мотивации для развития.
@@ -18,7 +18,7 @@ If this project is useful to you, please **⭐ star this repository**. It helps 
 - **Snapshot diff viewer:** compare any two saved snapshots and inspect added, removed, and modified declarations.
 - **Weekly monitor:** dashboard shows the latest tracker run and changes recorded in recent reports.
 - **Telegram notifications:** optional messages for real schema changes, plus a manual notification test.
-- **No runtime dependencies:** the application uses Python's standard library.
+- **Legacy Python runner:** the current scheduled tracker uses Python's standard library while the Rust replacement is developed and tested.
 - **Tests and linting:** pytest and Ruff run in CI.
 - **Web dashboard:** GitHub Pages provides searchable declarations, snapshot history, workflow status, and an interactive diff.
 
@@ -94,6 +94,19 @@ Never commit the token or paste it into issues or chat. Notifications are option
 The static dashboard lives in `site/` and is deployed through GitHub Pages. It loads public snapshots and reports from this repository and reads the latest tracker run from GitHub's public Actions API. Use **Snapshot history** to open an archived snapshot, or **Compare snapshots** to inspect declaration additions, removals, and modifications between two dates. The weekly monitor counts changes recorded in reports from the last seven UTC calendar days; days without a saved report are not counted. No server, API key, or client-side token is required.
 
 A repository owner must enable Pages once: open **Settings → Pages → Build and deployment → Source** and select **GitHub Actions**. Then run **Actions → Deploy dashboard to GitHub Pages → Run workflow**.
+
+## Rust and JavaScript migration
+
+The migration is developed on the `rewrite/rust-js` branch.
+
+- `engine/` is the new Rust library. It currently validates and canonicalizes MTProto schemas, calculates structured declaration diffs, and normalizes volatile fields in Telegram web resources.
+- `site/app.js` contains the dashboard controller. `site/index.html` keeps the page structure and loads that module.
+- The Python CLI and scheduled workflow are retained during the migration. They will only be replaced after the Rust implementation can produce compatible snapshots, reports, and GitHub Actions outputs.
+- CI checks the existing Python tests, Rust formatting/Clippy/tests, and JavaScript syntax.
+
+The web-resource normalization rules are informed by the behavior documented in [prodserverchangesall](https://github.com/glebxdlolreal/prodserverchangesall). Its source files and snapshots are not copied into this repository.
+
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the current module boundaries and migration plan.
 
 ## Automatic releases
 
