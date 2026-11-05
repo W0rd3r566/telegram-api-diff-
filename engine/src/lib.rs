@@ -4,7 +4,9 @@
 //! existing Python implementation and the JavaScript dashboard.
 
 pub mod diff;
+pub mod normalize;
 pub mod schema;
 
 pub use diff::{compare_schemas, schema_counts, RecordChange, SchemaDiff};
+pub use normalize::{normalize_app_config_json, normalize_text};
 pub use schema::{canonicalize_schema, SchemaError, SCHEMA_COLLECTIONS};
