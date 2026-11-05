@@ -1,7 +1,7 @@
 use clap::{Args, Parser, Subcommand};
 use std::error::Error;
 use std::path::PathBuf;
-use telegram_api_diff::runner::{command_check, command_update, SCHEMA_URL};
+use telegram_api_diff::runner::{SCHEMA_URL, command_check, command_update};
 
 #[derive(Debug, Parser)]
 #[command(
