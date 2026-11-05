@@ -9,14 +9,16 @@ use std::sync::OnceLock;
 
 fn patterns() -> &'static [Regex; 6] {
     static PATTERNS: OnceLock<[Regex; 6]> = OnceLock::new();
-    PATTERNS.get_or_init(|| [
-        Regex::new(r"(?is)<time\b[^>]*>.*?</time\s*>|<time\b[^>]*/\s*>").unwrap(),
-        Regex::new(r"(?is)<!--\s*page generated in\s+\d+(?:\.\d+)?\s*ms\s*-->").unwrap(),
-        Regex::new(r"\b(?:\d{1,3}\.){3}\d{1,3}:8888\b").unwrap(),
-        Regex::new(r"(?i)(?:hash|token|passport_ssid|nonce)=[^&#\s\x22\x27<>]*&?").unwrap(),
-        Regex::new(r"(?i)(sig|se)=[^&;\s,}\x22\x27]+").unwrap(),
-        Regex::new(r"(?i)(\.(?:js|css))\?[0-9]+_[0-9]+").unwrap(),
-    ])
+    PATTERNS.get_or_init(|| {
+        [
+            Regex::new(r"(?is)<time\b[^>]*>.*?</time\s*>|<time\b[^>]*/\s*>").unwrap(),
+            Regex::new(r"(?is)<!--\s*page generated in\s+\d+(?:\.\d+)?\s*ms\s*-->").unwrap(),
+            Regex::new(r"\b(?:\d{1,3}\.){3}\d{1,3}:8888\b").unwrap(),
+            Regex::new(r"(?i)(?:hash|token|passport_ssid|nonce)=[^&#\s\x22\x27<>]*&?").unwrap(),
+            Regex::new(r"(?i)(sig|se)=[^&;\s,}\x22\x27]+").unwrap(),
+            Regex::new(r"(?i)(\.(?:js|css))\?[0-9]+_[0-9]+").unwrap(),
+        ]
+    })
 }
 
 fn clean_query_separators(value: &str) -> String {
