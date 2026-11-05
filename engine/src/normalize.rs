@@ -1,47 +1,22 @@
 //! Volatile-data normalization inspired by Telegram production snapshots.
 //!
-//! The normalizer intentionally removes only known unstable fragments. It does
-//! not attempt to rewrite HTML, minify JavaScript, or alter meaningful content.
+//! Only documented volatile fragments are removed. Meaningful application
+//! data is preserved, including nested config fields.
 
 use regex::Regex;
 use serde_json::Value;
 use std::sync::OnceLock;
 
-fn pattern(source: &'static str) -> &'static Regex {
-    static PATTERNS: OnceLock<std::collections::HashMap<&'static str, Regex>> = OnceLock::new();
-    let patterns = PATTERNS.get_or_init(|| {
-        [
-            (
-                r"(?is)<time\b[^>]*>.*?</time\s*>|<time\b[^>]*/\s*>",
-                Regex::new(r"(?is)<time\b[^>]*>.*?</time\s*>|<time\b[^>]*/\s*>").unwrap(),
-            ),
-            (
-                r"(?is)<!--\s*page generated in\s+\d+(?:\.\d+)?\s*ms\s*-->",
-                Regex::new(r"(?is)<!--\s*page generated in\s+\d+(?:\.\d+)?\s*ms\s*-->").unwrap(),
-            ),
-            (
-                r"\b(?:\d{1,3}\.){3}\d{1,3}:8888\b",
-                Regex::new(r"\b(?:\d{1,3}\.){3}\d{1,3}:8888\b").unwrap(),
-            ),
-            (
-                r"(?i)(?:hash|token|passport_ssid|nonce)=[^&#\s\"'<>]*&?",
-                Regex::new(r"(?i)(?:hash|token|passport_ssid|nonce)=[^&#\s\"'<>]*&?").unwrap(),
-            ),
-            (
-                r"(?i)(sig|se)=[^&\s,}\"']+",
-                Regex::new(r"(?i)(sig|se)=[^&\s,}\"']+").unwrap(),
-            ),
-            (
-                r"(?i)(\.(?:js|css))\?[0-9]+_[0-9]+",
-                Regex::new(r"(?i)(\.(?:js|css))\?[0-9]+_[0-9]+").unwrap(),
-            ),
-        ]
-        .into_iter()
-        .map(|(key, regex)| (key, regex))
-        .collect()
-    });
-
-    patterns.get(source).expect("normalizer regex is registered")
+fn patterns() -> &'static [Regex; 6] {
+    static PATTERNS: OnceLock<[Regex; 6]> = OnceLock::new();
+    PATTERNS.get_or_init(|| [
+        Regex::new(r"(?is)<time\b[^>]*>.*?</time\s*>|<time\b[^>]*/\s*>").unwrap(),
+        Regex::new(r"(?is)<!--\s*page generated in\s+\d+(?:\.\d+)?\s*ms\s*-->").unwrap(),
+        Regex::new(r"\b(?:\d{1,3}\.){3}\d{1,3}:8888\b").unwrap(),
+        Regex::new(r"(?i)(?:hash|token|passport_ssid|nonce)=[^&#\s\x22\x27<>]*&?").unwrap(),
+        Regex::new(r"(?i)(sig|se)=[^&;\s,}\x22\x27]+").unwrap(),
+        Regex::new(r"(?i)(\.(?:js|css))\?[0-9]+_[0-9]+").unwrap(),
+    ])
 }
 
 fn clean_query_separators(value: &str) -> String {
@@ -61,27 +36,13 @@ fn clean_query_separators(value: &str) -> String {
 
 /// Remove known volatile fragments from Telegram web resources.
 pub fn normalize_text(input: &str) -> String {
-    let mut output = input.to_owned();
-
-    output = pattern(r"(?is)<time\b[^>]*>.*?</time\s*>|<time\b[^>]*/\s*>")
-        .replace_all(&output, "")
-        .into_owned();
-    output = pattern(r"(?is)<!--\s*page generated in\s+\d+(?:\.\d+)?\s*ms\s*-->")
-        .replace_all(&output, "")
-        .into_owned();
-    output = pattern(r"\b(?:\d{1,3}\.){3}\d{1,3}:8888\b")
-        .replace_all(&output, "")
-        .into_owned();
-
-    output = pattern(r"(?i)(?:hash|token|passport_ssid|nonce)=[^&#\s\"'<>]*&?")
-        .replace_all(&output, "")
-        .into_owned();
-    output = pattern(r"(?i)(sig|se)=[^&\s,}\"']+")
-        .replace_all(&output, "$1=")
-        .into_owned();
-    output = pattern(r"(?i)(\.(?:js|css))\?[0-9]+_[0-9]+")
-        .replace_all(&output, "$1")
-        .into_owned();
+    let regex = patterns();
+    let mut output = regex[0].replace_all(input, "").into_owned();
+    output = regex[1].replace_all(&output, "").into_owned();
+    output = regex[2].replace_all(&output, "").into_owned();
+    output = regex[3].replace_all(&output, "").into_owned();
+    output = regex[4].replace_all(&output, "$1=").into_owned();
+    output = regex[5].replace_all(&output, "$1").into_owned();
 
     clean_query_separators(&output)
 }
@@ -133,11 +94,8 @@ mod tests {
 
     #[test]
     fn clears_signature_values_but_keeps_keys() {
-        let input = "{\"sig\":\"abc123\",\"se\":\"xyz789\"}";
-        assert_eq!(
-            normalize_text(input),
-            "{\"sig\":\"\",\"se\":\"\"}"
-        );
+        let input = "sig=abc123&se=xyz789";
+        assert_eq!(normalize_text(input), "sig=&se=");
     }
 
     #[test]
