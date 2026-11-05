@@ -159,19 +159,23 @@ mod tests {
     #[test]
     fn rejects_missing_required_collections() {
         let schema = serde_json::json!({"constructors": []});
-        assert!(canonicalize_schema(&schema)
-            .unwrap_err()
-            .to_string()
-            .contains("required declaration arrays"));
+        assert!(
+            canonicalize_schema(&schema)
+                .unwrap_err()
+                .to_string()
+                .contains("required declaration arrays")
+        );
     }
 
     #[test]
     fn rejects_empty_schemas() {
         let schema = serde_json::json!({"constructors": [], "methods": []});
-        assert!(canonicalize_schema(&schema)
-            .unwrap_err()
-            .to_string()
-            .contains("no declarations"));
+        assert!(
+            canonicalize_schema(&schema)
+                .unwrap_err()
+                .to_string()
+                .contains("no declarations")
+        );
     }
 
     #[test]
@@ -183,10 +187,12 @@ mod tests {
             ],
             "methods": []
         });
-        assert!(canonicalize_schema(&schema)
-            .unwrap_err()
-            .to_string()
-            .contains("duplicate declaration name"));
+        assert!(
+            canonicalize_schema(&schema)
+                .unwrap_err()
+                .to_string()
+                .contains("duplicate declaration name")
+        );
     }
 
     #[test]
@@ -195,9 +201,11 @@ mod tests {
             "constructors": [{"predicate": {"unexpected": "object"}}],
             "methods": []
         });
-        assert!(canonicalize_schema(&schema)
-            .unwrap_err()
-            .to_string()
-            .contains("no usable declaration name"));
+        assert!(
+            canonicalize_schema(&schema)
+                .unwrap_err()
+                .to_string()
+                .contains("no usable declaration name")
+        );
     }
 }
