@@ -2,7 +2,7 @@
 
 use crate::diff::{compare_schemas, schema_counts};
 use crate::report::{render_baseline_report, render_report};
-use crate::schema::{canonicalize_schema, SchemaError};
+use crate::schema::{SchemaError, canonicalize_schema};
 use chrono::{SecondsFormat, Utc};
 use regex::Regex;
 use reqwest::blocking::{Client, Response};
@@ -11,36 +11,38 @@ use std::env;
 use std::error::Error;
 use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Write};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::time::Duration;
 
 pub const SCHEMA_URL: &str = "https://core.telegram.org/schema/json";
 const SCHEMA_LAYER_URL: &str = "https://core.telegram.org/scheme";
 const MAX_SCHEMA_BYTES: usize = 64 * 1024 * 1024;
 const MAX_LAYER_BYTES: usize = 512 * 1024;
-const USER_AGENT: &str =
-    "telegram-api-diff/0.2 (+https://github.com/W0rd3r566/telegram-api-diff-)";
+const USER_AGENT: &str = "telegram-api-diff/0.2 (+https://github.com/W0rd3r566/telegram-api-diff-)";
 
 fn invalid_data(message: impl Into<String>) -> std::io::Error {
     std::io::Error::new(std::io::ErrorKind::InvalidData, message.into())
 }
 
 fn read_limited(response: Response, limit: usize, label: &str) -> Result<Vec<u8>, Box<dyn Error>> {
-    if response.content_length().is_some_and(|length| length > limit as u64) {
+    if response
+        .content_length()
+        .is_some_and(|length| length > limit as u64)
+    {
         return Err(invalid_data(format!(
             "{label} response exceeds the {limit}-byte safety limit."
-        )).into());
+        ))
+        .into());
     }
 
     let mut bytes = Vec::new();
-    response
-        .take((limit + 1) as u64)
-        .read_to_end(&mut bytes)?;
+    response.take((limit + 1) as u64).read_to_end(&mut bytes)?;
 
     if bytes.len() > limit {
         return Err(invalid_data(format!(
             "{label} response exceeds the {limit}-byte safety limit."
-        )).into());
+        ))
+        .into());
     }
 
     Ok(bytes)
@@ -65,8 +67,7 @@ fn fetch_bytes(
 pub fn parse_api_layer(text: &str) -> Result<u64, SchemaError> {
     let primary = Regex::new(r"(?im)^\s*(?:[-*+]\s*)?Layer\s+(\d+)\b")
         .expect("constant layer regex is valid");
-    let fallback =
-        Regex::new(r"(?i)\bLayer\s+(\d+)\b").expect("constant fallback regex is valid");
+    let fallback = Regex::new(r"(?i)\bLayer\s+(\d+)\b").expect("constant fallback regex is valid");
 
     primary
         .captures(text)
@@ -85,22 +86,21 @@ pub fn fetch_schema(url: &str, timeout_seconds: f64) -> Result<Value, Box<dyn Er
     if !timeout_seconds.is_finite() || timeout_seconds <= 0.0 {
         return Err(invalid_data("Timeout must be a positive finite number.").into());
     }
+    let timeout = Duration::try_from_secs_f64(timeout_seconds)
+        .map_err(|_| invalid_data("Timeout is outside the supported range."))?;
 
     let client = Client::builder()
-        .timeout(Duration::from_secs_f64(timeout_seconds))
+        .timeout(timeout)
         .user_agent(USER_AGENT)
         .build()?;
 
-    let raw = fetch_bytes(
-        &client,
-        url,
-        MAX_SCHEMA_BYTES,
-        "application/json",
-        "Schema",
-    )?;
+    let raw = fetch_bytes(&client, url, MAX_SCHEMA_BYTES, "application/json", "Schema")?;
     let text = std::str::from_utf8(&raw)?;
-    let payload: Value = serde_json::from_str(text)
-        .map_err(|error| invalid_data(format!("Schema endpoint did not return valid JSON: {error}")))?;
+    let payload: Value = serde_json::from_str(text).map_err(|error| {
+        invalid_data(format!(
+            "Schema endpoint did not return valid JSON: {error}"
+        ))
+    })?;
     let mut normalized = canonicalize_schema(&payload)?;
 
     if url == SCHEMA_URL {
@@ -336,11 +336,13 @@ mod tests {
 
     #[test]
     fn writes_files_atomically_and_creates_parent_directories() {
-        let root: PathBuf = std::env::temp_dir()
-            .join(format!("telegram-api-diff-test-{}", std::process::id()));
+        use std::path::PathBuf;
+
+        let root: PathBuf =
+            std::env::temp_dir().join(format!("telegram-api-diff-test-{}", std::process::id()));
         let path = root.join("snapshots").join("latest.json");
-        atomic_write(&path, "{\\\"ok\\\": true}\\n").unwrap();
-        assert_eq!(fs::read_to_string(&path).unwrap(), "{\\\"ok\\\": true}\\n");
+        atomic_write(&path, "{\"ok\": true}\n").unwrap();
+        assert_eq!(fs::read_to_string(&path).unwrap(), "{\"ok\": true}\n");
         let _ = fs::remove_dir_all(root);
     }
 }
