@@ -2,7 +2,7 @@ name: Tests
 
 on:
   push:
-    branches: [main]
+    branches: [main, rewrite/rust-js]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -11,7 +11,8 @@ permissions:
   contents: read
 
 jobs:
-  quality:
+  python-quality:
+    name: Python compatibility
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -35,7 +36,41 @@ jobs:
       - name: Compile Python
         run: python -m compileall -q src
 
-      - name: Check dashboard JavaScript syntax
-        run: |
-          python -c "from pathlib import Path; import re; html = Path('site/index.html').read_text(encoding='utf-8'); scripts = re.findall(r'<script>(.*?)</script>', html, re.S); assert scripts, 'No inline JavaScript found'; Path('/tmp/telegram-api-diff-dashboard.js').write_text('\\n'.join(scripts), encoding='utf-8')"
-          node --check /tmp/telegram-api-diff-dashboard.js
+  rust-quality:
+    name: Rust engine
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: engine
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run Clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Run Rust tests
+        run: cargo test --all-targets
+
+  dashboard:
+    name: JavaScript dashboard
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Check dashboard JavaScript
+        run: node --check site/app.js
