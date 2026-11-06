@@ -96,7 +96,7 @@ test("downloads pages and resources, normalizes text, hashes content, and archiv
     );
 
     const manifest = JSON.parse(await readFile(join(root, "resource_snapshots/latest.json"), "utf8"));
-    assert.equal(manifest.resources.length, 3);
+    assert.equal(manifest.resources.length, 4);
     assert.ok(await readFile(join(root, "resource_reports/latest.md"), "utf8"));
   } finally {
     await cleanup(root);
