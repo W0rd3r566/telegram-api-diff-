@@ -2,7 +2,7 @@
 
 Track changes in Telegram's official MTProto TL schema and discover changes in Telegram's public web resources with a dependency-free Node.js engine and a JavaScript dashboard.
 
-The MTProto tracker downloads Telegram's machine-readable schema, compares it with previous snapshots, stores versioned JSON data, and writes Markdown reports. The resource crawler discovers Telegram pages and static-resource URLs, producing stable URL inventories for the next collection stage. The runner uses Node's built-in Fetch API and filesystem modules. No npm runtime dependencies are required.
+The MTProto tracker downloads Telegram's machine-readable schema, compares it with previous snapshots, stores versioned JSON data, and writes Markdown reports. The resource crawler discovers Telegram pages and static-resource URLs. A separate collector fetches those URLs, removes documented volatile data, hashes normalized content, and stores each unique body once. The runner uses Node's built-in Fetch API and filesystem modules. No npm runtime dependencies are required.
 
 ## Features
 
@@ -12,6 +12,9 @@ The MTProto tracker downloads Telegram's machine-readable schema, compares it wi
 - **Detailed Markdown reports:** dated reports in `reports/` and `reports/latest.md`, including field and parameter-level changes.
 - **Telegram resource discovery:** bounded crawler for Telegram-owned sites, HTML links, static asset URLs, and manually supplied seed pages.
 - **Crawl safety:** host allowlist, `robots.txt` support, same-host redirect policy, response-size limits, per-host request pacing, and protection against replacing a healthy URL inventory with a dramatically smaller crawl.
+- **Resource snapshots:** daily manifests for tracked HTML pages and static resources, with SHA-256 content-addressed storage that avoids duplicate bodies.
+- **Conditional fetching:** ETag and Last-Modified validators reduce repeated downloads when the server supports them.
+- **Collector safety:** robots.txt checks, same-host HTTPS redirects, per-file and total byte budgets, bounded concurrency, and round-robin coverage for large inventories.
 - **Reference-inspired normalization:** conservative helpers for volatile values in Telegram production web resources.
 - **Automation:** scheduled and manually triggerable MTProto workflow, with status visible in the dashboard.
 - **Automatic releases:** GitHub creates a Release with the generated Markdown report whenever the MTProto schema actually changes.
@@ -31,11 +34,12 @@ The MTProto tracker downloads Telegram's machine-readable schema, compares it wi
     node src/index.js update
     node src/index.js check
     node src/index.js crawl --max-pages 500 --max-depth 2
+    node src/index.js collect --max-resources 1000 --max-total-mb 64
     npm test
 
 The first `update` creates an MTProto baseline. Since no earlier snapshot exists yet, it cannot report historical changes on that first run. Subsequent runs compare against that baseline.
 
-The first `crawl` discovers a bounded set of pages and resource URLs. It does not download or archive resource bodies yet. It writes `tracked_links.txt`, `tracked_res_links.txt`, and `crawler-report.json` in the repository root. Increase coverage gradually after reviewing the report.
+The `crawl` command writes `tracked_links.txt`, `tracked_res_links.txt`, and `crawler-report.json`. The `collect` command reads both URL inventories, downloads and normalizes content, and writes dated manifests and reports. It stores each normalized response body once under `resource_objects/` using its SHA-256 digest.
 
 ## CLI
 
@@ -44,6 +48,7 @@ The first `crawl` discovers a bounded set of pages and resource URLs. It does no
 | `node src/index.js update` | Fetch the schema, compare it to the latest snapshot, and save a dated snapshot and report for each successful check. |
 | `node src/index.js check` | Check for schema changes without writing; exits with status 1 when changes are detected and 2 when no baseline exists. |
 | `node src/index.js crawl` | Discover Telegram-owned pages and static-resource URLs, then save the URL inventories. |
+| `node src/index.js collect` | Download, normalize, hash, compare and archive tracked pages and resources. |
 
 Options available for all commands:
 
@@ -62,11 +67,18 @@ Crawler options:
 - `--delay-ms N`: minimum delay between requests to the same host, from `0` to `5000`, default `150`.
 - `--seed URL`: add a seed URL. Repeat the option to provide multiple seeds. Supplying custom seeds replaces the built-in seed list.
 
+Resource collector options:
+
+- `--max-resources N`: maximum URLs checked per run, default `1000`. The collector rotates its starting position between runs so later URLs are not starved.
+- `--max-resource-mb N`: maximum download size for one non-page resource, default `4` MiB. HTML pages have a separate 2 MiB limit.
+- `--max-total-mb N`: total response-body download budget per run, default `64` MiB.
+
 ## Repository layout
 
     .github/workflows/    GitHub Actions automation
     src/core.js           MTProto fetching, validation, diff, reports and storage
     src/crawler.js        Telegram page and resource URL discovery
+    src/resource-collector.js  Safe resource fetching, normalization and archival
     src/normalize.js      Volatile resource normalization
     src/index.js          CLI entry point
     site/app.js           Browser dashboard controller
@@ -77,12 +89,17 @@ Crawler options:
     tracked_links.txt     Discovered Telegram page URLs (host + path)
     tracked_res_links.txt Discovered Telegram resource URLs (host + path)
     crawler-report.json  Last crawl summary and failures
+    resource_snapshots/  Dated resource manifests and latest baseline
+    resource_reports/    Dated resource change reports
+    resource_objects/    Content-addressed normalized response bodies
 
 The MTProto tracker runs daily at 04:17 UTC and can also be started from **Actions → Track Telegram MTProto schema → Run workflow**.
 
 ## Resource crawler scope
 
-The crawler starts from a small set of Telegram-owned sites and follows HTML links up to the configured depth. It only accepts `telegram.org` and `contest.com` hosts (including their subdomains), respects `robots.txt`, limits response sizes, and rejects cross-host redirects. It discovers URLs only: downloading, normalizing, hashing, and versioning the actual resource contents are separate stages and are not enabled by this command yet.
+The crawler starts from a small set of Telegram-owned sites and follows HTML links up to the configured depth. It only accepts `telegram.org` and `contest.com` hosts (including their subdomains), respects `robots.txt`, limits response sizes, and rejects cross-host redirects. The collector then reads both discovered page and resource inventories. It checks robots.txt again, follows only same-host HTTPS redirects, applies ETag/Last-Modified validators, enforces per-file and total download budgets, and normalizes text/JSON responses before hashing them. Binary files are archived byte-for-byte. HTTP 404/410 responses are recorded as removals; network errors and robots blocks preserve the previous known-good hash instead of being treated as deletions.
+
+Normalized bodies are stored once at `resource_objects/<first-two-hash-characters>/<sha256>`. Dated manifests in `resource_snapshots/` map URLs to hashes and object paths; Markdown summaries are written to `resource_reports/`. When the inventory exceeds `--max-resources`, collection rotates through the list on later runs. Failed or deferred URLs remain eligible for a future run.
 
 The crawler is inspired by the documented goals of [prodserverchangesall](https://github.com/glebxdlolreal/prodserverchangesall) and the public architecture described by [Telegram Crawler](https://github.com/MarshalX/telegram-crawler). This project does not copy their source code or snapshot assets.
 

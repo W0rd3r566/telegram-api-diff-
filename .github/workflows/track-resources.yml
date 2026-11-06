@@ -1,0 +1,61 @@
+name: Track Telegram web resources
+
+on:
+  schedule:
+    - cron: "17 5 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/track-resources.yml"
+      - "src/**"
+      - "tests/**"
+      - "package.json"
+      - "tracked_links.txt"
+      - "tracked_res_links.txt"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: telegram-resource-tracker
+  cancel-in-progress: false
+
+jobs:
+  collect-resources:
+    name: Discover and snapshot Telegram web resources
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Verify the project
+        run: npm test
+
+      - name: Discover pages and static resources
+        run: node src/index.js crawl --max-pages 500 --max-depth 2 --concurrency 4 --delay-ms 200
+
+      - name: Download and snapshot tracked resources
+        run: node src/index.js collect --max-resources 500 --concurrency 4 --delay-ms 200 --max-resource-mb 4 --max-total-mb 32
+
+      - name: Commit resource history
+        run: |
+          git add tracked_links.txt tracked_res_links.txt crawler-report.json resource_snapshots resource_reports resource_objects
+          if git diff --cached --quiet; then
+            echo "No resource snapshot changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: update Telegram web resource snapshots"
+          if ! git push; then
+            echo "Branch advanced during collection; rebasing the generated commit."
+            git pull --rebase origin main
+            git push
+          fi

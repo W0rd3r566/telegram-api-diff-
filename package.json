@@ -11,6 +11,7 @@
     "update": "node src/index.js update",
     "check": "node src/index.js check",
     "crawl": "node src/index.js crawl",
-    "test": "node --test"
+    "test": "node --test",
+    "collect": "node src/index.js collect"
   }
 }
