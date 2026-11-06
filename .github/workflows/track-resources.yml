@@ -4,15 +4,6 @@ on:
   schedule:
     - cron: "17 5 * * *"
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - ".github/workflows/track-resources.yml"
-      - "src/**"
-      - "tests/**"
-      - "package.json"
-      - "tracked_links.txt"
-      - "tracked_res_links.txt"
 
 permissions:
   contents: write

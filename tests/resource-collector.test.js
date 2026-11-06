@@ -12,7 +12,7 @@ async function fixture() {
   await writeFile(join(root, "tracked_links.txt"), "telegram.org/about\n", "utf8");
   await writeFile(
     join(root, "tracked_res_links.txt"),
-    "telegram.org/help.getAppConfig.json\ntelegram.org/assets/logo.png\n",
+    "telegram.org/help.getAppConfig.json\ntelegram.org/assets/logo.png\ntelegram.org/assets/duplicate-logo.png\n",
     "utf8",
   );
   return root;
@@ -53,7 +53,7 @@ function fixtureFetch(options = {}) {
         { etag: '"config-v1"' },
       );
     }
-    if (url.pathname === "/assets/logo.png") {
+    if (url.pathname === "/assets/logo.png" || url.pathname === "/assets/duplicate-logo.png") {
       return response(new Uint8Array([0, 1, 2, 255]), "image/png", { etag: '"image-v1"' });
     }
     return notFound();
@@ -70,20 +70,22 @@ test("downloads pages and resources, normalizes text, hashes content, and archiv
   try {
     const { fetchImpl } = fixtureFetch();
     const result = await collectResources({ root, fetchImpl, perHostDelayMs: 0 });
-    assert.equal(result.manifest.trackedCount, 3);
-    assert.equal(result.manifest.attemptedCount, 3);
-    assert.equal(result.changes.added, 3);
+    assert.equal(result.manifest.trackedCount, 4);
+    assert.equal(result.manifest.attemptedCount, 4);
+    assert.equal(result.changes.added, 4);
     assert.equal(result.manifest.partial, false);
 
     const page = result.manifest.resources.find((item) => item.url.endsWith("/about"));
     const config = result.manifest.resources.find((item) => item.url.endsWith("help.getAppConfig.json"));
     const image = result.manifest.resources.find((item) => item.url.endsWith("/assets/logo.png"));
+    const duplicateImage = result.manifest.resources.find((item) => item.url.endsWith("/assets/duplicate-logo.png"));
     assert.ok(page.normalized);
     assert.ok(config.normalized);
     assert.equal(image.normalized, false);
 
     const saved = await saveResourceResults(result, root);
     assert.equal(saved.objectsWritten, 3);
+    assert.equal(image.object, duplicateImage.object);
     const pageBody = await readFile(join(root, page.object), "utf8");
     assert.doesNotMatch(pageBody, /<time\b|page generated in/);
     const configBody = JSON.parse(await readFile(join(root, config.object), "utf8"));
@@ -115,7 +117,7 @@ test("uses ETag conditional requests and reuses the previous object on HTTP 304"
           assert.equal(new Headers(init.headers).get("if-none-match"), '"page-v1"');
           return new Response(null, { status: 304 });
         }
-        if (url.pathname.endsWith("help.getAppConfig.json") || url.pathname === "/assets/logo.png") {
+        if (url.pathname.endsWith("help.getAppConfig.json") || url.pathname.startsWith("/assets/")) {
           return new Response(null, { status: 304 });
         }
         return notFound();
@@ -154,7 +156,7 @@ test("detects normalized content changes and returns a stable diff", async () =>
             { etag: '"config-v2"' },
           );
         }
-        if (url.pathname === "/assets/logo.png") return response(new Uint8Array([0, 1, 2, 255]), "image/png");
+        if (url.pathname.startsWith("/assets/")) return response(new Uint8Array([0, 1, 2, 255]), "image/png");
         return notFound();
       },
     });
@@ -178,6 +180,7 @@ test("records resources removed by HTTP 404 without deleting their prior history
       handler: async (url) => {
         if (url.pathname === "/robots.txt") return notFound();
         if (url.pathname === "/assets/logo.png") return notFound();
+        if (url.pathname === "/assets/duplicate-logo.png") return response(new Uint8Array([0, 1, 2, 255]), "image/png");
         if (url.pathname === "/about") return response("<p>Stable page</p>", "text/html");
         if (url.pathname.endsWith("help.getAppConfig.json")) {
           return response(JSON.stringify({ stable: true, nested: { hash: "keep" } }), "application/json");
@@ -236,7 +239,7 @@ test("fails closed for robots errors and cross-host redirects", async () => {
       robots: new Response("temporarily unavailable", { status: 503 }),
     });
     const result = await collectResources({ root, fetchImpl: blocked.fetchImpl, perHostDelayMs: 0 });
-    assert.equal(result.failures.length, 3);
+    assert.equal(result.failures.length, 4);
     assert.ok(blocked.calls.every((call) => call.url.endsWith("/robots.txt")));
     await assert.rejects(
       saveResourceResults(result, root),
@@ -253,7 +256,7 @@ test("fails closed for robots errors and cross-host redirects", async () => {
       },
     });
     const redirected = await collectResources({ root, fetchImpl: redirect.fetchImpl, perHostDelayMs: 0 });
-    assert.equal(redirected.failures.length, 3);
+    assert.equal(redirected.failures.length, 4);
     assert.match(redirected.failures[0].error, /cross-host or insecure redirect/);
   } finally {
     await cleanup(root);

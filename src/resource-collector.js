@@ -601,12 +601,14 @@ export async function saveResourceResults(result, root = ".") {
   if (!manifest || !Array.isArray(manifest.resources)) {
     throw new TypeError("A valid resource collection result is required.");
   }
-  const successful = manifest.resources.some((item) =>
-    item.fetchStatus === "ok" || item.fetchStatus === "unchanged" || item.fetchStatus === "not_found");
-  if (!successful && result.failures.length) {
+  const changes = result.changes ?? {};
+  const checkedSuccessfully = Number(changes.added ?? 0) + Number(changes.changed ?? 0) +
+    Number(changes.removed ?? 0) + Number(changes.unchanged ?? 0) > 0;
+  if (!checkedSuccessfully && result.failures.length) {
     throw new ResourceCollectorError("No resources could be checked successfully; previous manifest was left unchanged.");
   }
 
+  let objectsWritten = 0;
   for (const item of result.bodies ?? []) {
     const path = join(base, item.path);
     try {
@@ -614,6 +616,7 @@ export async function saveResourceResults(result, root = ".") {
     } catch (error) {
       if (error.code !== "ENOENT") throw error;
       await atomicWrite(path, item.body);
+      objectsWritten += 1;
     }
   }
 
@@ -635,7 +638,7 @@ export async function saveResourceResults(result, root = ".") {
     latestPath,
     reportPath,
     latestReportPath,
-    objectsWritten: result.bodies?.length ?? 0,
+    objectsWritten,
     resources: manifest.resources.length,
     attempted: manifest.attemptedCount,
     bytesDownloaded: manifest.bytesDownloaded,
