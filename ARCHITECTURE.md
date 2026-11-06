@@ -1,52 +1,45 @@
-# Architecture and migration plan
+# Architecture
 
-## Current layout
+Telegram API Diff uses a dependency-free Node.js engine and a static JavaScript dashboard.
 
-`engine/` is the new Rust core.
+## Runtime
 
-- `schema.rs` validates Telegram TL schema payloads and sorts declarations deterministically.
-- `diff.rs` compares constructors, methods, types, API layer, and other top-level metadata.
-- `normalize.rs` removes known volatile fragments from production web resources and normalizes the selected app-config fields.
+- Node.js 22 or newer.
+- No third-party runtime packages. HTTP requests use the built-in Fetch API.
+- Tests use the built-in Node.js test runner.
 
-`site/` is the static GitHub Pages dashboard.
+## Core modules
 
-- `index.html` contains the page structure and styles.
-- `app.js` contains the dashboard behavior and data loading.
+- `src/core.js` fetches Telegram's official schema and layer timeline, validates declarations, compares snapshots, renders Markdown reports, and handles atomic storage and GitHub Actions outputs.
+- `src/normalize.js` applies conservative normalization rules to Telegram production web resources.
+- `src/index.js` provides the `update` and `check` CLI commands.
+- `site/app.js` is the browser-side dashboard controller and does not import Node-only modules.
 
-`src/telegram_api_diff/` is the existing Python implementation. It remains the production runner until the Rust CLI and scheduled workflow reach feature parity.
+## Reference-inspired normalization
 
-## Production resource normalization
+The normalization rules follow the behavior documented by
+[glebxdlolreal/prodserverchangesall](https://github.com/glebxdlolreal/prodserverchangesall):
 
-The normalization behavior is based on the documented process in
-[glebxdlolreal/prodserverchangesall](https://github.com/glebxdlolreal/prodserverchangesall).
+- remove volatile `<time>` elements;
+- remove page-generation HTML comments;
+- normalize IP addresses ending in `:8888`;
+- normalize `hash`, `token`, `passport_ssid`, and `nonce` query values;
+- remove numeric JavaScript/CSS cache-buster suffixes;
+- normalize `sig=` and `se=` signature values;
+- ignore top-level `hash` and `ton_usd_rate` fields in `help.getAppConfig.json`.
 
-The Rust normalizer currently handles:
+For app-config JSON, similarly named nested fields are preserved. The reference repository is a behavioral reference only; its source files, snapshots, and assets are not copied.
 
-- volatile `<time>` elements;
-- generated HTML comments containing page-generation time;
-- IP-and-port values ending in `:8888`;
-- volatile query values: `hash`, `token`, `passport_ssid`, and `nonce`;
-- numeric cache-buster suffixes on JavaScript and CSS assets;
-- `sig=` and `se=` signature values;
-- top-level `hash` and `ton_usd_rate` fields in `help.getAppConfig.json`.
+## Data compatibility
 
-The JSON config normalization deliberately removes only top-level fields. Nested fields with the same names are preserved to avoid deleting potentially meaningful application data.
+The existing `snapshots/*.json` and `reports/*.md` formats remain readable by the dashboard. Failed downloads, invalid JSON, empty schemas, and malformed declarations are errors and never replace the baseline.
 
-The reference repository has no published license file. This project uses its public documentation as a behavioral reference and does not copy its source files, snapshots, or assets.
+The scheduled workflow runs `node src/index.js update`. It writes a dated snapshot, `snapshots/latest.json`, a dated report, and `reports/latest.md`. It also writes single-line outputs to `GITHUB_OUTPUT` for optional Telegram notifications and release generation.
 
-## Migration sequence
+## Local development
 
-1. Port schema validation, canonicalization, and structured diffing to Rust.
-2. Port report generation and the `update` / `check` CLI while preserving the current JSON snapshot format and Markdown report semantics.
-3. Add the production-resource collector around an explicit, reviewable resource manifest. Keep requests bounded, use timeouts, and fail safely on unexpected responses.
-4. Connect the Rust runner to the existing GitHub Actions workflow only after parity tests pass.
-5. Extend the JavaScript dashboard to display web-resource history alongside MTProto schema history.
-6. Remove the Python runner only after the Rust runner has passed equivalent workflow runs and the existing historical data remains readable.
+    npm test
+    node src/index.js update
+    node src/index.js check
 
-## Compatibility rules
-
-- Never overwrite `main` during the migration; use the rewrite branch and reviewable pull requests.
-- Keep existing `snapshots/` and `reports/` readable.
-- Treat failed downloads, invalid JSON, and empty payloads as errors. They must never replace a valid baseline.
-- Normalize only documented volatile values. Do not broadly strip content just because it changes often.
-- Keep generated snapshots and the dashboard's public data format stable unless a migration explicitly updates both producer and consumer.
+Use `~`--schema-url``, `~`--root``, and `~`--timeout`` to override defaults.

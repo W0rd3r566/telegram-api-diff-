@@ -1,44 +1,38 @@
 # Telegram API Diff
 
-Track changes in Telegram's official MTProto TL schema and Telegram production web resources over time.
+Track changes in Telegram's official MTProto TL schema with a dependency-free Node.js engine and a JavaScript dashboard.
 
-Telegram API Diff downloads Telegram's machine-readable schema, compares it with previous snapshots, stores versioned JSON data, and writes Markdown reports. The existing Python tracker remains the stable runner while the Rust engine and JavaScript dashboard are being migrated on `rewrite/rust-js`.
+Telegram API Diff downloads Telegram's machine-readable schema, compares it with previous snapshots, stores versioned JSON data, and writes Markdown reports. The runner uses Node's built-in Fetch API and filesystem modules. No npm runtime dependencies are required.
 
 If this project is useful to you, please **⭐ star this repository**. It helps other developers discover it and motivates further development.  
 Если проект оказался полезным, пожалуйста, **⭐ поставьте звезду этому репозиторию**. Так другим разработчикам будет проще его найти, а у проекта будет больше мотивации для развития.
 
 ## Features
 
-- **Official source:** [Telegram's machine-readable TL schema](https://core.telegram.org/schema/json), with [schema documentation](https://core.telegram.org/schema).
-- **Structured change detection:** added, removed, and modified declarations, plus the current API layer from Telegram's official schema page.
+- **Official source:** [Telegram's machine-readable TL schema](https://core.telegram.org/schema/json), with the current API layer read from [Telegram's schema documentation](https://core.telegram.org/schema).
+- **Structured change detection:** added, removed, and modified declarations, plus changes to the API layer and other top-level metadata.
 - **Snapshot history:** dated JSON snapshots in `snapshots/`, with `snapshots/latest.json` as the current baseline.
-- **Detailed Markdown reports:** dated reports in `reports/` and a convenient `reports/latest.md`, including field and parameter-level changes.
+- **Detailed Markdown reports:** dated reports in `reports/` and `reports/latest.md`, including field and parameter-level changes.
+- **Reference-inspired normalization:** conservative helpers for volatile values in Telegram production web resources.
 - **Automation:** scheduled and manually triggerable GitHub Actions workflow, with status visible in the dashboard.
 - **Automatic releases:** GitHub creates a Release with the generated Markdown report whenever the schema actually changes.
 - **Snapshot diff viewer:** compare any two saved snapshots and inspect added, removed, and modified declarations.
 - **Weekly monitor:** dashboard shows the latest tracker run and changes recorded in recent reports.
 - **Telegram notifications:** optional messages for real schema changes, plus a manual notification test.
-- **Legacy Python runner:** the current scheduled tracker uses Python's standard library while the Rust replacement is developed and tested.
-- **Tests and linting:** pytest and Ruff run in CI.
+- **Tests:** Node's built-in test runner, with no extra test dependencies.
 - **Web dashboard:** GitHub Pages provides searchable declarations, snapshot history, workflow status, and an interactive diff.
+
+## Requirements
+
+- Node.js 22 or newer.
+- Git for the scheduled workflow's generated snapshot commits.
+- No npm install step is required for runtime or tests.
 
 ## Quick start
 
-Requires Python 3.11 or newer.
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install -e ".[dev]"
-
-# Create the first snapshot, or compare and save any changes.
-telegram-api-diff update
-
-# Check the official schema without writing files.
-telegram-api-diff check
-```
-
-On Windows, activate the environment with `.venv\Scripts\activate` instead.
+    node src/index.js update
+    node src/index.js check
+    npm test
 
 The first `update` creates a baseline. Since no earlier snapshot exists yet, it cannot report historical changes on that first run. Subsequent runs compare against that baseline.
 
@@ -46,37 +40,28 @@ The first `update` creates a baseline. Since no earlier snapshot exists yet, it 
 
 | Command | Behaviour |
 | --- | --- |
-| `telegram-api-diff update` | Fetch the schema, compare it to the latest snapshot, and save a dated snapshot and report for each successful check. |
-| `telegram-api-diff check` | Check for changes without writing; exits with status 1 when changes are detected and 2 when no baseline exists. |
+| `node src/index.js update` | Fetch the schema, compare it to the latest snapshot, and save a dated snapshot and report for each successful check. |
+| `node src/index.js check` | Check for changes without writing; exits with status 1 when changes are detected and 2 when no baseline exists. |
 
 Options available for both commands:
 
-- `--root PATH`: project data directory, default `.`.
-- `--schema-url URL`: alternate schema endpoint, useful for testing.
-- `--timeout SECONDS`: HTTP timeout, default `30`.
-
-You can also run the module directly with `python -m telegram_api_diff`.
+- `~`--root PATH``: project data directory, default `.`.
+- `~`--schema-url URL``: alternate schema endpoint, useful for testing.
+- `~`--timeout SECONDS``: HTTP timeout, default `30`.
 
 ## Repository layout
 
-```text
-.github/
-  workflows/
-    track-schema.yml    # Daily/manual schema tracker
-    test-telegram.yml   # Manual Telegram notification test
-    tests.yml           # Test and lint checks
-src/
-  telegram_api_diff/
-    cli.py              # Command-line interface
-    schema.py           # Fetching and canonicalization
-    diff.py             # Structured comparison
-    report.py           # Markdown reports
-tests/
-snapshots/              # Dated JSON snapshots and latest baseline
-reports/                # Dated reports and latest report
-```
+    .github/workflows/    GitHub Actions automation
+    src/core.js           Fetching, validation, diff, reports and storage
+    src/normalize.js      Volatile resource normalization
+    src/index.js          CLI entry point
+    site/app.js           Browser dashboard controller
+    site/index.html       Dashboard structure and styles
+    tests/                Node built-in tests
+    snapshots/            Dated snapshots and latest baseline
+    reports/              Dated reports and latest report
 
-The `snapshots/` and `reports/` data files are created when the tracker first runs. The tracker runs daily at 04:17 UTC and can also be started from **Actions → Track Telegram MTProto schema → Run workflow**.
+The tracker runs daily at 04:17 UTC and can also be started from **Actions → Track Telegram MTProto schema → Run workflow**.
 
 ## Optional Telegram notifications
 
@@ -84,39 +69,22 @@ The `snapshots/` and `reports/` data files are created when the tracker first ru
 2. Add repository Actions secrets under **Settings → Secrets and variables → Actions**:
    - `TELEGRAM_BOT_TOKEN`: the bot token from BotFather.
    - `TELEGRAM_CHAT_ID`: the chat ID that should receive notifications.
-3. To send a test message regardless of whether the schema changed, open **Actions → Test Telegram notification → Run workflow**. This separate workflow does not require selecting a checkbox.
+3. To send a test message regardless of whether the schema changed, open **Actions → Test Telegram notification → Run workflow**.
 4. The regular tracker sends notifications when schema changes are detected. It can also send a test message when its `test_notification` input is enabled.
 
 Never commit the token or paste it into issues or chat. Notifications are optional; schema tracking works without them.
 
 ## Web dashboard
 
-The static dashboard lives in `site/` and is deployed through GitHub Pages. It loads public snapshots and reports from this repository and reads the latest tracker run from GitHub's public Actions API. Use **Snapshot history** to open an archived snapshot, or **Compare snapshots** to inspect declaration additions, removals, and modifications between two dates. The weekly monitor counts changes recorded in reports from the last seven UTC calendar days; days without a saved report are not counted. No server, API key, or client-side token is required.
+The static dashboard lives in `site/` and is deployed through GitHub Pages. It loads public snapshots and reports from this repository and reads the latest tracker run from GitHub's public Actions API. Use **Snapshot history** to open an archived snapshot, or **Compare snapshots** to inspect declaration additions, removals, and modifications between two dates. No server, API key, or client-side token is required.
 
 A repository owner must enable Pages once: open **Settings → Pages → Build and deployment → Source** and select **GitHub Actions**. Then run **Actions → Deploy dashboard to GitHub Pages → Run workflow**.
 
-## Rust and JavaScript migration
-
-The migration is developed on the `rewrite/rust-js` branch.
-
-- `engine/` is the new Rust library. It currently validates and canonicalizes MTProto schemas, calculates structured declaration diffs, and normalizes volatile fields in Telegram web resources.
-- `site/app.js` contains the dashboard controller. `site/index.html` keeps the page structure and loads that module.
-- The Python CLI and scheduled workflow are retained during the migration. They will only be replaced after the Rust implementation can produce compatible snapshots, reports, and GitHub Actions outputs.
-- CI checks the existing Python tests, Rust formatting/Clippy/tests, and JavaScript syntax.
-
-The web-resource normalization rules are informed by the behavior documented in [prodserverchangesall](https://github.com/glebxdlolreal/prodserverchangesall). Its source files and snapshots are not copied into this repository.
-
-See [ARCHITECTURE.md](ARCHITECTURE.md) for the current module boundaries and migration plan.
-
-## Automatic releases
-
-Whenever the tracker detects actual schema changes, it creates a GitHub Release tagged with the UTC date, current API layer, and workflow run ID. The generated `reports/latest.md` becomes the release notes. Checks with no changes, including a manual Telegram notification test, do not create a release.
-
 ## How change detection works
 
-The JSON is canonicalized before comparison: declaration collections are sorted by stable names and object keys are serialized consistently. Each constructor, method, or type is identified by its schema name. The report lists new, removed, and modified declarations and highlights changes to the API layer or other top-level metadata.
+The JSON is canonicalized before comparison: declaration collections are sorted by stable names and object keys are serialized consistently. Each constructor, method, or type is identified by its schema name. Reports list additions, removals, modifications, and meaningful metadata changes.
 
-A missing or malformed response is treated as an error rather than a valid empty schema, preventing accidental replacement of the baseline with an error page.
+The reference-inspired normalization helper uses documented behavior from [prodserverchangesall](https://github.com/glebxdlolreal/prodserverchangesall). It normalizes only known volatile fragments, rather than filtering content merely because it changes often. The reference repository's source files and snapshot assets are not copied.
 
 ## Data and attribution
 

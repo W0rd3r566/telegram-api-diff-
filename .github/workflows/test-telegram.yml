@@ -24,8 +24,22 @@ jobs:
           message=$(printf '✅ LayerTracker test notification\nSchema check completed successfully; no changes detected.\nCurrent layer: 225\nReport: https://github.com/W0rd3r566/telegram-api-diff-/blob/main/reports/latest.md')
 
           response=$(curl --fail-with-body --silent --show-error --request POST \
-            "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-            --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
-            --data-urlencode "text=${message}")
+            "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+            --data-urlencode "chat_id=$TELEGRAM_CHAT_ID" \
+            --data-urlencode "text=$message")
 
-          printf '%s' "$response" | python -c 'import json, sys; result = json.load(sys.stdin); print("Telegram API accepted the message." if result.get("ok") else "Telegram API returned an error."); sys.exit(0 if result.get("ok") else 1)'
+          printf '%s' "$response" | node -e '
+            let body = "";
+            process.stdin.setEncoding("utf8");
+            process.stdin.on("data", chunk => body += chunk);
+            process.stdin.on("end", () => {
+              try {
+                const result = JSON.parse(body);
+                console.log(result.ok ? "Telegram API accepted the message." : "Telegram API returned an error.");
+                process.exitCode = result.ok ? 0 : 1;
+              } catch {
+                console.error("Telegram API returned invalid JSON.");
+                process.exitCode = 1;
+              }
+            });
+          '
