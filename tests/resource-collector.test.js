@@ -124,7 +124,7 @@ test("uses ETag conditional requests and reuses the previous object on HTTP 304"
       },
     });
     const next = await collectResources({ root, fetchImpl: second.fetchImpl, perHostDelayMs: 0 });
-    assert.equal(next.changes.unchanged, 3);
+    assert.equal(next.changes.unchanged, 4);
     assert.equal(next.changes.changed, 0);
     assert.equal(next.manifest.bytesDownloaded, 0);
     const unchangedPage = next.manifest.resources.find((item) => item.url.endsWith("/about"));
@@ -162,7 +162,7 @@ test("detects normalized content changes and returns a stable diff", async () =>
     });
     const after = await collectResources({ root, fetchImpl: second.fetchImpl, perHostDelayMs: 0 });
     assert.equal(after.changes.changed, 1);
-    assert.equal(after.changes.unchanged, 2);
+    assert.equal(after.changes.unchanged, 3);
     assert.ok(after.changes.changedItems[0].url.endsWith("/about"));
   } finally {
     await cleanup(root);
