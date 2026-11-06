@@ -1,0 +1,9 @@
+{
+  "name": "telegram-api-diff",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Track Telegram MTProto schema changes with a dependency-free Node.js runner.",
+  "engines": { "node": ">=22" },
+  "scripts": { "update": "node src/index.js update", "check": "node src/index.js check", "test": "node --test" }
+}
