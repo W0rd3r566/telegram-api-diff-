@@ -274,6 +274,7 @@ test("enforces per-file and total response byte limits", async () => {
       root,
       fetchImpl,
       perHostDelayMs: 0,
+      maxPageBytes: 3,
       maxResourceBytes: 3,
       maxTotalBytes: 3,
     });
