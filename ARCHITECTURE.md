@@ -12,7 +12,8 @@ Telegram API Diff uses a dependency-free Node.js engine and a static JavaScript 
 
 - `src/core.js` fetches Telegram's official schema and layer timeline, validates declarations, compares snapshots, renders Markdown reports, and handles atomic storage and GitHub Actions outputs.
 - `src/normalize.js` applies conservative normalization rules to Telegram production web resources.
-- `src/index.js` provides the `update` and `check` CLI commands.
+- `src/crawler.js` discovers Telegram-owned HTML pages and static-resource URLs with bounded requests, robots.txt checks, and redirect restrictions. It does not yet download or archive resource bodies.
+- `src/index.js` provides the `update`, `check`, and `crawl` CLI commands.
 - `site/app.js` is the browser-side dashboard controller and does not import Node-only modules.
 
 ## Reference-inspired normalization
@@ -41,5 +42,6 @@ The scheduled workflow runs `node src/index.js update`. It writes a dated snapsh
     npm test
     node src/index.js update
     node src/index.js check
+    node src/index.js crawl
 
-Use `~`--schema-url``, `~`--root``, and `~`--timeout`` to override defaults.
+Pass `--schema-url`, `--root`, and `--timeout` to override defaults.

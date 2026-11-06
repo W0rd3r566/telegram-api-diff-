@@ -61,7 +61,7 @@ export function canonicalizeSchema(data) {
     result[collection] = [...data[collection]].sort((a, b) => {
       const left = String(a[idKey] ?? a.name ?? a.id) + "|" + stableStringify(a);
       const right = String(b[idKey] ?? b.name ?? b.id) + "|" + stableStringify(b);
-      return left.localeCompare(right);
+      return left < right ? -1 : left > right ? 1 : 0;
     });
   }
   return result;
