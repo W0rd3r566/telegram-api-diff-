@@ -4,21 +4,20 @@ Thanks for helping improve Telegram API Diff.
 
 ## Development setup
 
-Use Python 3.11 or newer. Create a virtual environment, activate it, and install the development dependencies with:
-
-    python -m venv .venv
-    source .venv/bin/activate
-    python -m pip install -e ".[dev]"
+Use Node.js 22 or newer. No third-party packages are needed.
 
 ## Before opening a pull request
 
-Run the project's quality checks:
+Run the project's test suite:
 
-    ruff check src tests
-    pytest
-    python -m compileall -q src
+    npm test
 
-Please include tests for new comparison or reporting behaviour. Keep the runtime dependency-free unless a new dependency provides a clear benefit.
+Also check the CLI and dashboard JavaScript syntax:
+
+    node --check src/index.js
+    node --check site/app.js
+
+Please include tests for new schema comparison, normalization, or reporting behaviour. Keep the runtime dependency-free unless a new dependency provides a clear benefit.
 
 ## Schema source
 
