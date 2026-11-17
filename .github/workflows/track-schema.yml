@@ -16,7 +16,7 @@ on:
       - ".github/workflows/track-schema.yml"
       - "src/**"
       - "tests/**"
-      - "pyproject.toml"
+      - "package.json"
       - "README.md"
 
 permissions:
@@ -34,18 +34,14 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v7
 
-      - name: Set up Python
-        uses: actions/setup-python@v7
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          python-version: "3.12"
-          cache: pip
-
-      - name: Install project
-        run: python -m pip install --upgrade pip && python -m pip install .
+          node-version: "22"
 
       - name: Fetch and compare schema
         id: track
-        run: python -m telegram_api_diff update
+        run: node src/index.js update
 
       - name: Notify Telegram about schema changes
         if: steps.track.outputs.has_changes == 'true' || inputs.test_notification
@@ -78,11 +74,25 @@ jobs:
           fi
 
           response=$(curl --fail-with-body --silent --show-error --request POST \
-            "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-            --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
-            --data-urlencode "text=${message}")
+            "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+            --data-urlencode "chat_id=$TELEGRAM_CHAT_ID" \
+            --data-urlencode "text=$message")
 
-          printf '%s' "$response" | python -c 'import json, sys; result = json.load(sys.stdin); print("Telegram API accepted the message." if result.get("ok") else "Telegram API returned an error."); sys.exit(0 if result.get("ok") else 1)'
+          printf '%s' "$response" | node -e '
+            let body = "";
+            process.stdin.setEncoding("utf8");
+            process.stdin.on("data", chunk => body += chunk);
+            process.stdin.on("end", () => {
+              try {
+                const result = JSON.parse(body);
+                console.log(result.ok ? "Telegram API accepted the message." : "Telegram API returned an error.");
+                process.exitCode = result.ok ? 0 : 1;
+              } catch {
+                console.error("Telegram API returned invalid JSON.");
+                process.exitCode = 1;
+              }
+            });
+          '
 
       - name: Commit generated snapshots and reports
         run: |
@@ -99,17 +109,17 @@ jobs:
             git pull --rebase origin main
             git push
           fi
+
       - name: Publish GitHub Release for schema changes
         if: steps.track.outputs.has_changes == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           CURRENT_LAYER: ${{ steps.track.outputs.current_layer }}
         run: |
-          tag="schema-$(date -u +%Y%m%d)-layer-${CURRENT_LAYER}-${GITHUB_RUN_ID}"
+          tag="schema-$(date -u +%Y%m%d)-layer-$CURRENT_LAYER-$GITHUB_RUN_ID"
           cp reports/latest.md /tmp/schema-release-notes.md
           printf '\n---\n\nDashboard: https://w0rd3r566.github.io/telegram-api-diff-/\nLatest report: https://github.com/W0rd3r566/telegram-api-diff-/blob/main/reports/latest.md\n' >> /tmp/schema-release-notes.md
           gh release create "$tag" \
-            --title "Telegram MTProto schema update: layer ${CURRENT_LAYER}" \
+            --title "Telegram MTProto schema update: layer $CURRENT_LAYER" \
             --notes-file /tmp/schema-release-notes.md \
             --target "$(git rev-parse HEAD)"
-
